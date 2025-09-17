@@ -1,8 +1,32 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "sourceRoot": "apps/barbershop/src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/barbershop/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/barbershop",
+  "projects": {
+    "barbershop": {
+      "type": "application",
+      "root": "apps/barbershop",
+      "entryFile": "main",
+      "sourceRoot": "apps/barbershop/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/barbershop/tsconfig.app.json"
+      }
+    },
+    "barbershop-batch": {
+      "type": "application",
+      "root": "apps/barbershop-batch",
+      "entryFile": "main",
+      "sourceRoot": "apps/barbershop-batch/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/barbershop-batch/tsconfig.app.json"
+      }
+    }
   }
 }
