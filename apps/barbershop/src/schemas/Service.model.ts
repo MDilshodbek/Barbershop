@@ -1,0 +1,58 @@
+import { Schema } from 'mongoose';
+import { ServiceStatus, ServiceType } from '../libs/enums/service.enum';
+
+const ServiceSchema = new Schema(
+	{
+		serviceType: {
+			type: [String],
+			enum: ServiceType,
+			default: [],
+		},
+
+		serviceStatus: {
+			type: String,
+			enum: ServiceStatus,
+			default: ServiceStatus.ACTIVE,
+		},
+
+		serviceTitle: {
+			type: String,
+			index: { unique: true, sparse: true },
+			required: true,
+		},
+
+		serviceDuration: {
+			type: Number,
+			require: true,
+		},
+
+		servicePrice: {
+			type: Number,
+			required: true,
+		},
+
+		serviceLikes: {
+			type: Number,
+			default: 0,
+		},
+
+		serviceRank: {
+			type: Number,
+			default: 0,
+		},
+
+		serviceImages: {
+			type: [String],
+			required: true,
+		},
+
+		serviceDesc: {
+			type: String,
+		},
+	},
+	{ timestamps: true, collection: 'service' },
+);
+
+ServiceSchema.index({ serviceType: 1, servicePrice: 1, serviceTitle: 1 }, { unique: true });
+
+export default ServiceSchema;
