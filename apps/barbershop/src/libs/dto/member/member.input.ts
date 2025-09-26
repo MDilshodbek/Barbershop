@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsOptional, Length } from 'class-validator';
-import { MemberAuthType, MemberType } from '../../enums/member.enum';
+import { MemberAuthType, MemberLevel, MemberType } from '../../enums/member.enum';
 
 @InputType()
 export class MemberInput {
@@ -25,6 +25,10 @@ export class MemberInput {
 	@IsOptional()
 	@Field(() => MemberAuthType, { nullable: true })
 	memberAuthType?: MemberAuthType;
+
+	@IsOptional()
+	@Field(() => MemberLevel, { nullable: true })
+	memberLevel?: MemberLevel;
 }
 
 // Login Input
