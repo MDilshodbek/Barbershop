@@ -1,6 +1,8 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, Length } from 'class-validator';
-import { MemberAuthType, MemberLevel, MemberType } from '../../enums/member.enum';
+import { Field, InputType, Int } from '@nestjs/graphql';
+import { IsIn, IsNotEmpty, IsOptional, Length, Min } from 'class-validator';
+import { MemberAuthType, MemberLevel, MemberStatus, MemberType } from '../../enums/member.enum';
+import { availableBarberSorts, availableMemberSorts } from '../../config';
+import { Direction } from '../../enums/common.enum';
 
 @InputType()
 export class MemberInput {
@@ -43,4 +45,80 @@ export class LoginInput {
 	@Length(5, 12)
 	@Field(() => String)
 	memberPassword: string;
+}
+
+@InputType()
+class BISearch {
+	@IsOptional()
+	@Field(() => String, { nullable: true })
+	text?: string;
+}
+
+// Get Agents
+@InputType()
+export class BarbersInquiry {
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableBarberSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsNotEmpty()
+	@Field(() => BISearch)
+	search: BISearch;
+}
+
+// Admin
+@InputType()
+class MISearch {
+	@IsOptional()
+	@Field(() => MemberStatus, { nullable: true })
+	memberStatus?: MemberStatus;
+
+	@IsOptional()
+	@Field(() => MemberType, { nullable: true })
+	memberType?: MemberType;
+
+	@IsOptional()
+	@Field(() => String, { nullable: true })
+	text?: string;
+}
+
+@InputType()
+export class MembersInquiry {
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
+	@IsOptional()
+	@IsIn(availableMemberSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsNotEmpty()
+	@Field(() => MISearch)
+	search: MISearch;
 }
