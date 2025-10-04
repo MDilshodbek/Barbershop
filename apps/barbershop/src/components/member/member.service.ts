@@ -6,7 +6,7 @@ import { BarbersInquiry, LoginInput, MemberInput, MembersInquiry } from '../../l
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { AuthService } from '../auth/auth.service';
-import { T } from '../../libs/types/common';
+import { StatisticModifier, T } from '../../libs/types/common';
 import { MemberUpdate } from '../../libs/dto/member/member.update';
 import { ViewInput } from '../../libs/dto/view/view.input';
 import { ViewGroup } from '../../libs/enums/view.enum';
@@ -100,11 +100,11 @@ export class MemberService {
 		return targetMember;
 	}
 
-		public async getAgents(memberId: ObjectId, input: BarbersInquiry): Promise<Members> {
+	public async getAgents(memberId: ObjectId, input: BarbersInquiry): Promise<Members> {
 		const { text } = input.search;
 
 		const match: T = { memberType: MemberType.BARBER, memberStatus: MemberStatus.ACTIVE };
-		const sort: T = { [input?.sort ?? "memberRank"]: input?.direction ?? Direction.DESC };
+		const sort: T = { [input?.sort ?? 'memberRank']: input?.direction ?? Direction.DESC };
 
 		if (text) match.memberNick = { $regex: new RegExp(text, 'i') };
 		console.log('match:', match);
@@ -169,5 +169,9 @@ export class MemberService {
 		return result;
 	}
 
+	public async memberStatsEditor(input: StatisticModifier): Promise<Member> {
+		const { _id, targetKey, modifier } = input;
 
+		return await this.memberModel.findOneAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
+	}
 }

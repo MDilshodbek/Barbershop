@@ -4,9 +4,8 @@ import { ServiceStatus, ServiceType } from '../libs/enums/service.enum';
 const ServiceSchema = new Schema(
 	{
 		serviceType: {
-			type: [String],
+			type: String,
 			enum: ServiceType,
-			default: [],
 		},
 
 		serviceStatus: {
@@ -49,10 +48,13 @@ const ServiceSchema = new Schema(
 		serviceDesc: {
 			type: String,
 		},
+		deletedAt: {
+			type: Date,
+		},
 	},
-	{ timestamps: true, collection: 'service' },
+	{ timestamps: true, collection: 'services' },
 );
 
-ServiceSchema.index({ serviceType: 1, servicePrice: 1, serviceTitle: 1 }, { unique: true });
+ServiceSchema.index({ serviceType: 1, serviceTitle: 1 }, { unique: true });
 
 export default ServiceSchema;

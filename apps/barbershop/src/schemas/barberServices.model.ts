@@ -2,6 +2,8 @@ import { Schema } from 'mongoose';
 import { ServiceStatus } from '../libs/enums/service.enum';
 
 const BarberServiceSchema = new Schema({
+	barberId: { type: Schema.Types.ObjectId, ref: 'Barber', required: true },
+
 	serviceType: {
 		type: Schema.Types.ObjectId,
 		required: true,
@@ -24,5 +26,7 @@ const BarberServiceSchema = new Schema({
 		required: true,
 	},
 });
+
+BarberServiceSchema.index({ barberId: 1, serviceId: 1 }, { unique: true });
 
 export default BarberServiceSchema;
