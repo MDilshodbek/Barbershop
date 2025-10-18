@@ -24,7 +24,6 @@ import { ReservationModule } from './reservation/reservation.module';
 		LikeModule,
 		ViewModule,
 		BarberServicesModule,
-		
 	],
 })
 export class ComponentsModule {}
