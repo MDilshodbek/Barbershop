@@ -1,31 +1,44 @@
 import { Schema } from 'mongoose';
 import { ServiceStatus } from '../libs/enums/service.enum';
 
-const BarberServiceSchema = new Schema({
-	barberId: { type: Schema.Types.ObjectId, ref: 'Barber', required: true },
+const BarberServiceSchema = new Schema(
+	{
+		barberId: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
 
-	serviceType: {
-		type: Schema.Types.ObjectId,
-		required: true,
-		ref: 'Service',
-	},
+		serviceId: {
+			type: Schema.Types.ObjectId,
+			required: true,
+			ref: 'Service',
+		},
 
-	serviceStatus: {
-		type: String,
-		enum: ServiceStatus,
-		default: ServiceStatus.ACTIVE,
-	},
+		barberServiceStatus: {
+			type: String,
+			enum: ServiceStatus,
+			default: ServiceStatus.ACTIVE,
+		},
 
-	servicePrice: {
-		type: Number,
-		required: true,
-	},
+		barberServicePrice: {
+			type: Number,
+		},
 
-	serviceDuration: {
-		type: Number,
-		required: true,
+		barberServiceDuration: {
+			type: Number,
+		},
+
+		barberServiceImages: {
+			type: [String],
+		},
+
+		barberServiceDesc: {
+			type: String,
+		},
+
+		deletedAt: {
+			type: Date,
+		},
 	},
-});
+	{ timestamps: true },
+);
 
 BarberServiceSchema.index({ barberId: 1, serviceId: 1 }, { unique: true });
 

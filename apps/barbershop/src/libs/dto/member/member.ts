@@ -1,6 +1,7 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { MemberAuthType, MemberLevel, MemberStatus, MemberType } from '../../enums/member.enum';
+import { BCutServices } from '../barber-service/b-services';
 
 @ObjectType()
 export class Member {
@@ -19,8 +20,8 @@ export class Member {
 	@Field(() => MemberLevel)
 	memberLevel: MemberLevel;
 
-	@Field(() => [BarberServiceType])
-	memberService: BarberServiceType[];
+	@Field(() => Int)
+	memberServices: number;
 
 	@Field(() => String)
 	memberPhone: string;
@@ -75,9 +76,6 @@ export class Member {
 	@Field(() => Int)
 	memberBlocks: number;
 
-	@Field(() => Date, { nullable: true })
-	deletedAt?: Date;
-
 	@Field(() => Date)
 	createdAt: Date;
 
@@ -86,24 +84,6 @@ export class Member {
 
 	@Field(() => String, { nullable: true })
 	accessToken?: string;
-}
-
-@ObjectType('BarberService')
-export class BarberServiceType {
-	@Field(() => String)
-	_id: ObjectId;
-
-	@Field(() => String)
-	name: string;
-
-	@Field(() => Int)
-	price: number;
-
-	@Field(() => Int)
-	durationMinutes: number;
-
-	@Field(() => String, { nullable: true })
-	description?: string;
 }
 
 @ObjectType()

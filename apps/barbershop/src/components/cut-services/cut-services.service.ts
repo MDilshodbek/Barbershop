@@ -1,17 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { AuthService } from '../auth/auth.service';
-import { Service } from '../../libs/dto/service/service';
-import { ServiceInput } from '../../libs/dto/service/service.input';
+import { Model, ObjectId } from 'mongoose';
+import { Service, Services } from '../../libs/dto/service/service';
+import { ServiceInput, ServiceInquiry } from '../../libs/dto/service/service.input';
 import { Message } from '../../libs/enums/common.enum';
+import { T } from '../../libs/types/common';
+import { ServiceStatus } from '../../libs/enums/service.enum';
+import { ServiceUpdate } from '../../libs/dto/service/service.update';
 
 @Injectable()
 export class CutServicesService {
-	constructor(
-		@InjectModel('Services') private readonly servicesModel: Model<Service>,
-		private authService: AuthService,
-	) {}
+	constructor(@InjectModel('Services') private readonly servicesModel: Model<Service>) {}
 
 	public async createService(input: ServiceInput): Promise<Service> {
 		try {
@@ -22,5 +21,102 @@ export class CutServicesService {
 			console.log('Error, Service.model:', error.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
+	}
+
+	public async getService(serviceId: ObjectId): Promise<Service> {
+		const search: T = {
+			_id: serviceId,
+			serviceStatus: ServiceStatus.ACTIVE,
+		};
+
+		const targetService: Service = await this.servicesModel.findOne(search).lean().exec();
+		if (!targetService) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+		return targetService;
+	}
+
+	public async updateService(input: ServiceUpdate): Promise<Service> {
+		const { _id, serviceStatus, ...rest } = input;
+
+		const current = await this.servicesModel.findById(_id).select('serviceStatus').lean().exec();
+		if (!current) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+		// ADDED: compute next status
+		const nextStatus =
+			serviceStatus ?? (current.serviceStatus === ServiceStatus.ACTIVE ? ServiceStatus.INACTIVE : ServiceStatus.ACTIVE);
+
+		const setDoc = { ...rest, serviceStatus: nextStatus };
+
+		const result = await this.servicesModel
+			.findOneAndUpdate({ _id }, { $set: setDoc }, { new: true, runValidators: true })
+			.exec();
+
+		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
+		return result;
+	}
+
+	public async getServices(input: ServiceInquiry): Promise<Services> {
+		const text = input?.text?.trim();
+		const match: T = { serviceStatus: ServiceStatus.ACTIVE };
+
+		if (text) match.serviceTitle = { $regex: new RegExp(text, 'i') };
+		console.log('match:', match);
+
+		const result = await this.servicesModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: { displayOrder: 1, _id: 1 } },
+				{
+					$facet: {
+						list: [],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		console.log('result:', result);
+
+		return result[0];
+	}
+
+	public async removeService(_id: string): Promise<boolean> {
+		try {
+			const res = await this.servicesModel.deleteOne({ _id }).exec();
+			console.log('res:', res);
+
+			if (!res?.deletedCount) throw new BadRequestException(Message.REMOVE_FAILED);
+			return true;
+		} catch (error: any) {
+			console.log('Error, Service.model:', error.message);
+			throw new BadRequestException(Message.REMOVE_FAILED);
+		}
+	}
+
+	public async getAllServicesByAdmin(input: ServiceInquiry): Promise<Services> {
+		const match: T = {};
+
+		if (input?.text) match.serviceTitle = { $regex: new RegExp(input?.text, 'i') };
+		if (input?.serviceStatus) match.serviceStatus = input?.serviceStatus;
+		console.log('match:', match);
+
+		const result = await this.servicesModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: { displayOrder: 1, _id: 1 } },
+				{
+					$facet: {
+						list: [],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		console.log('result:', result);
+
+		return result[0];
 	}
 }

@@ -77,7 +77,7 @@ export class MemberResolver {
 		@AuthMember('_id') memberId?: ObjectId,
 	): Promise<Members> {
 		console.log('Query: getAgents');
-		return await this.memberService.getAgents(memberId, input);
+		return await this.memberService.getBarbers(memberId, input);
 	}
 
 	// Authorization: Admin

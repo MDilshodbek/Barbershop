@@ -17,10 +17,10 @@ export class Service {
 	@Field(() => String)
 	serviceTitle: string;
 
-	@Field(() => Number)
+	@Field(() => Int)
 	serviceDuration: number;
 
-	@Field(() => Number)
+	@Field(() => Int)
 	servicePrice: number;
 
 	@Field(() => Int)
@@ -34,9 +34,6 @@ export class Service {
 
 	@Field(() => String, { nullable: true })
 	serviceDesc?: string;
-
-	@Field(() => Date, { nullable: true })
-	deletedAt?: Date;
 
 	@Field(() => Date)
 	createdAt: Date;

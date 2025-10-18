@@ -54,7 +54,7 @@ class BISearch {
 	text?: string;
 }
 
-// Get Agents
+// Get Barbers
 @InputType()
 export class BarbersInquiry {
 	@IsNotEmpty()

@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 import { MemberAuthType, MemberLevel, MemberStatus, MemberType } from '../libs/enums/member.enum';
-import BarberServiceSchema from './barberServices.model';
+import BarberServiceSchema from './BarberServices.model';
 
 const MemberSchema = new Schema(
 	{
@@ -28,9 +28,9 @@ const MemberSchema = new Schema(
 			default: MemberLevel.JUNIOR,
 		},
 
-		memberService: {
-			type: [BarberServiceSchema],
-			default: [],
+		memberServices: {
+			type: Number,
+			default: 0,
 		},
 
 		memberPhone: {

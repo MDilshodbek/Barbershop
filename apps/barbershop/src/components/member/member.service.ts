@@ -100,7 +100,7 @@ export class MemberService {
 		return targetMember;
 	}
 
-	public async getAgents(memberId: ObjectId, input: BarbersInquiry): Promise<Members> {
+	public async getBarbers(memberId: ObjectId, input: BarbersInquiry): Promise<Members> {
 		const { text } = input.search;
 
 		const match: T = { memberType: MemberType.BARBER, memberStatus: MemberStatus.ACTIVE };

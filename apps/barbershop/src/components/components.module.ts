@@ -7,8 +7,9 @@ import { ViewModule } from './view/view.module';
 import { FollowModule } from './follow/follow.module';
 import { BoardArticleModule } from './board-article/board-article.module';
 import { ReviewModule } from './review/review.module';
-import { AppointmentModule } from './appointment/appointment.module';
 import { CutServicesModule } from './cut-services/cut-services.module';
+import { BarberServicesModule } from './barber-services/barber-services.module';
+import { ReservationModule } from './reservation/reservation.module';
 
 @Module({
 	imports: [
@@ -16,12 +17,14 @@ import { CutServicesModule } from './cut-services/cut-services.module';
 		AuthModule,
 		CutServicesModule,
 		ReviewModule,
-		AppointmentModule,
+		ReservationModule,
 		BoardArticleModule,
 		CommentModule,
 		FollowModule,
 		LikeModule,
 		ViewModule,
+		BarberServicesModule,
+		
 	],
 })
 export class ComponentsModule {}

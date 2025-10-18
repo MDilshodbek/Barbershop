@@ -1,10 +1,13 @@
 import { registerEnumType } from '@nestjs/graphql';
 
-export enum AppointStatus {
+export enum ReserveStatus {
 	BOOKED = 'BOOKED',
 	CANCELLED = 'CANCELLED',
+	FINISH = 'FINISH',
+	NOSHOW = 'NOSHOW',
+	CONFIRMED = 'CONFIRMED',
 }
 
-registerEnumType(AppointStatus, {
+registerEnumType(ReserveStatus, {
 	name: 'AppointStatus',
 });
