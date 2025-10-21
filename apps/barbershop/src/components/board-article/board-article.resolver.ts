@@ -21,7 +21,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 export class BoardArticleResolver {
 	constructor(private readonly boardArticleService: BoardArticleService) {}
 
-	@UseGuards(AuthGuard)
+	@Roles(MemberType.BARBER, MemberType.ADMIN)
+	@UseGuards(RolesGuard)
 	@Mutation((returns) => BoardArticle)
 	public async createBoardArticle(
 		@Args('input') input: BoardArticleInput,
@@ -89,9 +90,7 @@ export class BoardArticleResolver {
 	@Roles(MemberType.ADMIN)
 	@UseGuards(RolesGuard)
 	@Mutation((returns) => BoardArticle)
-	public async updateBoardArticleByAdmin(
-		@Args('input') input: BoardArticleUpdate,
-	): Promise<BoardArticle> {
+	public async updateBoardArticleByAdmin(@Args('input') input: BoardArticleUpdate): Promise<BoardArticle> {
 		console.log('Mutation: updateBoardArticleByAdmin');
 		input._id = shapeIntoMongoObjectId(input._id);
 		return await this.boardArticleService.updateBoardArticleByAdmin(input);

@@ -10,6 +10,15 @@ export const lookupBarber: PipelineStage = {
 	},
 };
 
+export const lookupMember = {
+	$lookup: {
+		from: 'members',
+		localField: 'memberId',
+		foreignField: '_id',
+		as: 'memberData',
+	},
+};
+
 export const lookupUser: PipelineStage = {
 	$lookup: {
 		from: 'members',

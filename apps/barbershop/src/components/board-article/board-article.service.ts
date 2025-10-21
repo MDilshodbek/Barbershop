@@ -16,6 +16,7 @@ import { BoardArticleStatus } from '../../libs/enums/board-article.enum';
 import { ViewGroup } from '../../libs/enums/view.enum';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 import { LikeGroup } from '../../libs/enums/like.enum';
+import { lookupMember } from '../../libs/pipelines/barber-service.pipes';
 
 @Injectable()
 export class BoardArticleService {
@@ -177,8 +178,8 @@ export class BoardArticleService {
 						list: [
 							{ $skip: (input.page - 1) * input.limit },
 							{ $limit: input.limit },
-							// lookupMember,
-							// { $unwind: '$memberData' },
+							lookupMember,
+							{ $unwind: '$memberData' },
 						],
 						metaCounter: [{ $count: 'total' }],
 					},

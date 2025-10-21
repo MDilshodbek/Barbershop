@@ -9,6 +9,7 @@ export const availableMemberSorts = ['createdAt', 'gender', 'level', 'memberLike
 export const availableReserveSorts = ['createdAt', 'oldest'];
 export const availableScheduleSorts = ['daily', 'weekly'];
 export const availableBoardArticleSorts = ['createdAt', 'updatedAt', 'articleLikes', 'articleViews'];
+export const availableCommentSorts = ['createdAt', 'updatedAt'];
 
 // IMAGE CONFIGURATION
 import { v4 as uuidv4 } from 'uuid';
