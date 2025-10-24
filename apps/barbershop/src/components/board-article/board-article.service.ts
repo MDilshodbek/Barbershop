@@ -17,6 +17,8 @@ import { ViewGroup } from '../../libs/enums/view.enum';
 import { shapeIntoMongoObjectId } from '../../libs/config';
 import { LikeGroup } from '../../libs/enums/like.enum';
 import { lookupMember } from '../../libs/pipelines/barber-service.pipes';
+import { LikeInput } from '../../libs/dto/like/like.input';
+import { LikeService } from '../like/like.service';
 
 @Injectable()
 export class BoardArticleService {
@@ -24,7 +26,7 @@ export class BoardArticleService {
 		@InjectModel('BoardArticle') private readonly boardArticleModel: Model<BoardArticle>,
 		private readonly memberService: MemberService,
 		private readonly viewService: ViewService,
-		// private readonly likeService: LikeService,
+		private readonly likeService: LikeService,
 	) {}
 
 	public async createBoardArticle(memberId: ObjectId, input: BoardArticleInput): Promise<BoardArticle> {
@@ -61,8 +63,8 @@ export class BoardArticleService {
 				targetBoardArticle.articleViews++;
 			}
 			// meLiked
-			// const likeInput = { memberId: memberId, likeRefId: articleId, likeGroup: LikeGroup.ARTICLE };
-			// targetBoardArticle.meLiked = await this.likeService.checkLikeExistence(likeInput);
+			const likeInput = { memberId: memberId, likeRefId: articleId, likeGroup: LikeGroup.ARTICLE };
+			targetBoardArticle.meLiked = await this.likeService.checkLikeExistence(likeInput);
 		}
 
 		targetBoardArticle.memberData = await this.memberService.getMember(null, targetBoardArticle.memberId);
@@ -136,29 +138,28 @@ export class BoardArticleService {
 			.exec();
 	}
 
-	// public async likeTargetBoardArticle(memberId: ObjectId, likeRefId: ObjectId): Promise<BoardArticle> {
-	// 	const target: BoardArticle = await this.boardArticleModel
-	// 		.findOne({ _id: likeRefId, articleStatus: BoardArticleStatus.ACTIVE })
-	// 		.exec();
-	// 	if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+	public async likeTargetBoardArticle(memberId: ObjectId, likeRefId: ObjectId): Promise<BoardArticle> {
+		const target: BoardArticle = await this.boardArticleModel
+			.findOne({ _id: likeRefId, articleStatus: BoardArticleStatus.ACTIVE })
+			.exec();
+		if (!target) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 
-	// 	// const input: LikeInput = {
-	// 	// 	memberId: memberId,
-	// 	// 	likeRefId: likeRefId,
-	// 	// 	likeGroup: LikeGroup.ARTICLE,
-	// 	// };
+		const input: LikeInput = {
+			memberId: memberId,
+			likeRefId: likeRefId,
+			likeGroup: LikeGroup.ARTICLE,
+		};
 
-	// 	// Like toggle -1 via like modules
-	// 	// const modifier: number = await this.likeService.toggleLike(input);
-	// 	// const result = await this.boardArticleStatsEditor({
-	// 	// 	_id: likeRefId,
-	// 	// 	targetKey: 'articleLikes',
-	// 	// 	modifier: modifier,
-	// 	// });
+		const modifier: number = await this.likeService.toggleLike(input);
+		const result = await this.boardArticleStatsEditor({
+			_id: likeRefId,
+			targetKey: 'articleLikes',
+			modifier: modifier,
+		});
 
-	// 	if (!result) throw new InternalServerErrorException(Message.SOMETHING_WENT_WRONG);
-	// 	return result;
-	// }
+		if (!result) throw new InternalServerErrorException(Message.SOMETHING_WENT_WRONG);
+		return result;
+	}
 
 	// Admin
 	public async getAllBoardArticlesByAdmin(input: AllBoardArticlesInquiry): Promise<BoardArticles> {
