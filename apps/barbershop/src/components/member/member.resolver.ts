@@ -1,7 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { MemberService } from './member.service';
 import { BadRequestException, InternalServerErrorException, UseGuards } from '@nestjs/common';
-import { BarbersInquiry, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
+import { BarbersInquiry, LoginInput, MemberInput, MembersInquiry, OrdinaryInquiry } from '../../libs/dto/member/member.input';
 import { Member, Members } from '../../libs/dto/member/member';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
@@ -89,6 +89,26 @@ export class MemberResolver {
 		console.log('Mutation: likeTargetMember');
 		const likeRefId = shapeIntoMongoObjectId(input);
 		return await this.memberService.likeTargetMember(memberId, likeRefId);
+	}
+
+	@UseGuards(AuthGuard)
+	@Query((returns) => Members)
+	public async getFavoriteMembers(
+		@Args('input') input: OrdinaryInquiry,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Members> {
+		console.log('Query: getFavoriteMembers');
+		return await this.memberService.getFavoriteMembers(memberId, input);
+	}
+
+		@UseGuards(AuthGuard)
+	@Query((returns) => Members)
+	public async getVisited(
+		@Args('input') input: OrdinaryInquiry,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Members> {
+		console.log('Query: getVisited');
+		return await this.memberService.getVisited(memberId, input);
 	}
 
 	// Authorization: Admin

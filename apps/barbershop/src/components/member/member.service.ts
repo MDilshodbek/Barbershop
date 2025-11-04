@@ -2,7 +2,13 @@ import { BadRequestException, Injectable, InternalServerErrorException } from '@
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { Member, Members } from '../../libs/dto/member/member';
-import { BarbersInquiry, LoginInput, MemberInput, MembersInquiry } from '../../libs/dto/member/member.input';
+import {
+	BarbersInquiry,
+	LoginInput,
+	MemberInput,
+	MembersInquiry,
+	OrdinaryInquiry,
+} from '../../libs/dto/member/member.input';
 import { MemberStatus, MemberType } from '../../libs/enums/member.enum';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { AuthService } from '../auth/auth.service';
@@ -107,7 +113,7 @@ export class MemberService {
 		return targetMember;
 	}
 
-		private async checkSubscription(followerId: ObjectId, followingId: ObjectId): Promise<MeFollowed[]> {
+	private async checkSubscription(followerId: ObjectId, followingId: ObjectId): Promise<MeFollowed[]> {
 		const result = await this.followModel.findOne({ followingId: followingId, followerId: followerId }).exec();
 
 		return result ? [{ followerId: followerId, followingId: followingId, myFollowing: true }] : [];
@@ -129,11 +135,7 @@ export class MemberService {
 				{
 					// birnechta query mantiqlarini tashkil etib alohida nom bilan ma'lumotlarni tartibli xolda olib beradi
 					$facet: {
-						list: [
-							{ $skip: (input.page - 1) * input.limit },
-							{ $limit: input.limit },
-							lookupAuthMemberLiked(memberId),
-						],
+						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }, lookupAuthMemberLiked(memberId)],
 						metaCounter: [{ $count: 'total' }],
 					},
 				},
@@ -162,6 +164,14 @@ export class MemberService {
 
 		if (!result) throw new InternalServerErrorException(Message.SOMETHING_WENT_WRONG);
 		return result;
+	}
+
+	public async getFavoriteMembers(memberId: ObjectId, input: OrdinaryInquiry): Promise<Members> {
+		return await this.likeService.getFavoriteMembers(memberId, input);
+	}
+
+	public async getVisited(memberId: ObjectId, input: OrdinaryInquiry): Promise<Members> {
+		return await this.viewService.getVisited(memberId, input);
 	}
 
 	public async getAllMembersByAdmin(input: MembersInquiry): Promise<Members> {

@@ -93,7 +93,7 @@ export class BoardArticleService {
 		return result;
 	}
 
-	public async getBoardArticles(memberId: ObjectId, input: BoardArticlesInquiry): Promise<BoardArticles> {
+	public async getBoardArticles(memberId: ObjectId, input: BoardArticlesInquiry): Promise<BoardArticles> {	
 		const { articleCategory, text } = input.search;
 		const match: T = { articleStatus: BoardArticleStatus.ACTIVE };
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
