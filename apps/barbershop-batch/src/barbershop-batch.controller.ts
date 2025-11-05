@@ -1,6 +1,6 @@
 import { Controller, Get, Logger } from '@nestjs/common';
 import { BarbershopBatchService } from './barbershop-batch.service';
-import { Cron, Interval, Timeout } from '@nestjs/schedule';
+import { Cron, Timeout } from '@nestjs/schedule';
 import { BATCH_LOYAL_USERS, BATCH_ROLLBACK, BATCH_TOP_BARBERS } from './lib/config';
 
 @Controller()
@@ -14,7 +14,7 @@ export class BarbershopBatchController {
 		this.logger.debug('BATCH SERVER READY!');
 	}
 
-	@Cron('00 00 * * * *', { name: BATCH_ROLLBACK })
+	@Cron('00 00 01 * * *', { name: BATCH_ROLLBACK })
 	public async batchRollback() {
 		try {
 			this.logger['context'] = BATCH_ROLLBACK;
@@ -25,7 +25,7 @@ export class BarbershopBatchController {
 		}
 	}
 
-	@Cron('20 00 * * * *', { name: BATCH_TOP_BARBERS })
+	@Cron('20 00 01 * * *', { name: BATCH_TOP_BARBERS })
 	public async batchBarbers() {
 		try {
 			this.logger['context'] = BATCH_TOP_BARBERS;
@@ -36,7 +36,7 @@ export class BarbershopBatchController {
 		}
 	}
 
-	@Cron('40 00 * * * *', { name: BATCH_LOYAL_USERS })
+	@Cron('40 00 01 * * *', { name: BATCH_LOYAL_USERS })
 	public async batchUsers() {
 		try {
 			this.logger['context'] = BATCH_LOYAL_USERS;
