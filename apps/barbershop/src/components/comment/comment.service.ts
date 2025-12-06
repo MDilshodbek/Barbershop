@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { MemberService } from '../member/member.service';
 import { Comment, Comments } from '../../libs/dto/comment/comment';
 import { Model, ObjectId } from 'mongoose';
-// import { PropertyService } from '../property/property.service';
 import { BoardArticleService } from '../board-article/board-article.service';
 import { CommentInput, CommentsInquiry } from '../../libs/dto/comment/comment.input';
 import { Direction, Message } from '../../libs/enums/common.enum';
@@ -11,14 +10,14 @@ import { CommentGroup, CommentStatus } from '../../libs/enums/comment.enum';
 import { CommentUpdate } from '../../libs/dto/comment/comment.update';
 import { T } from '../../libs/types/common';
 import { lookupMember } from '../../libs/pipelines/barber-service.pipes';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class CommentService {
 	constructor(
 		@InjectModel('Comment') private readonly commentModel: Model<Comment>,
-		private readonly memberService: MemberService,
-		// private readonly propertyService: PropertyService,
 		private readonly boardArticleService: BoardArticleService,
+		private readonly notificationService: NotificationService,
 	) {}
 
 	public async createComment(memberId: ObjectId, input: CommentInput): Promise<Comment> {
@@ -31,24 +30,31 @@ export class CommentService {
 			console.log('Error, Service.model:', error.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
+		let receiverId: ObjectId | null = null;
 
 		switch (input.commentGroup) {
 			case CommentGroup.ARTICLE:
 				await this.boardArticleService.boardArticleStatsEditor({
-					_id: input.commentRefId,
+					_id: input.commentTargetId,
 					targetKey: 'articleComments',
 					modifier: 1,
 				});
-				break;
-			case CommentGroup.MEMBER:
-				await this.memberService.memberStatsEditor({
-					_id: input.commentRefId,
-					targetKey: 'memberComments',
-					modifier: 1,
-				});
+
+				const article = await this.boardArticleService.getBoardArticle(null as any, input.commentTargetId);
+				// NOTE: adjust `article.memberId` to your actual field (maybe `memberRefId` / `authorId`)
+				receiverId = article?.memberId ?? null; // ADJUST THIS FIELD NAME IF NEEDED
 				break;
 		}
 		if (!result) throw new InternalServerErrorException(Message.CREATE_FAILED);
+
+		if (receiverId) {
+			await this.notificationService.createCommentNotification({
+				receiverId,
+				authorId: memberId,
+				commentId: result._id as unknown as ObjectId,
+			});
+		}
+
 		return result;
 	}
 
@@ -67,8 +73,8 @@ export class CommentService {
 	}
 
 	public async getComments(memberId: ObjectId, input: CommentsInquiry): Promise<Comments> {
-		const { commentRefId } = input.search;
-		const match: T = { commentRefId: commentRefId, commentStatus: CommentStatus.ACTIVE };
+		const { commentTargetId } = input.search;
+		const match: T = { commentTargetId: commentTargetId, commentStatus: CommentStatus.ACTIVE };
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
 		const result: Comments[] = await this.commentModel

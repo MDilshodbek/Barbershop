@@ -45,7 +45,7 @@ export class MemberResolver {
 	@UseGuards(RolesGuard)
 	@Query(() => String)
 	public async checkAuthRoles(@AuthMember() authMember: Member): Promise<string> {
-		console.log('Query: checkAuth');
+		console.log('Query: checkAuthRoles');
 		return `Hi ${authMember.memberNick}, you are ${authMember.memberType}, your phone number is ${authMember.memberPhone} and your id is ${authMember._id}`;
 	}
 
@@ -76,7 +76,7 @@ export class MemberResolver {
 		@Args('input') input: BarbersInquiry,
 		@AuthMember('_id') memberId?: ObjectId,
 	): Promise<Members> {
-		console.log('Query: getAgents');
+		console.log('Query: getBarbers');
 		return await this.memberService.getBarbers(memberId, input);
 	}
 

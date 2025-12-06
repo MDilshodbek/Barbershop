@@ -2,7 +2,7 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { Member, TotalCounter } from '../member/member';
 import { ReserveStatus } from '../../enums/reservation.enum';
-import { BCutService } from '../barber-service/b-services';
+import { Service } from '../service/service';
 
 @ObjectType()
 export class Reservation {
@@ -16,7 +16,16 @@ export class Reservation {
 	barberId: ObjectId;
 
 	@Field(() => String)
-	barberServiceId: ObjectId;
+	serviceId: ObjectId;
+
+	@Field(() => String)
+	serviceTitle: string;
+
+	@Field(() => Number)
+	servicePrice: number;
+
+	@Field(() => Int)
+	serviceDurationMin: number;
 
 	@Field(() => String)
 	reserveRefId: ObjectId;
@@ -29,9 +38,6 @@ export class Reservation {
 
 	@Field(() => Date)
 	reserveDay: Date;
-
-	@Field(() => Int)
-	serviceDurationMin: number;
 
 	@Field(() => String, { nullable: true })
 	reserveNotes?: string;
@@ -56,8 +62,8 @@ export class Reservation {
 	@Field(() => Member, { nullable: true })
 	barberData?: Member;
 
-	@Field(() => BCutService, { nullable: true })
-	barberServiceData?: BCutService;
+	@Field(() => Service, { nullable: true })
+	serviceData?: Service;
 
 	@Field(() => Member, { nullable: true })
 	clientData?: Member;

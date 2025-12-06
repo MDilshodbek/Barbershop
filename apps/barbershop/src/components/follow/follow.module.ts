@@ -5,10 +5,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import FollowSchema from '../../schemas/Follow.model';
 import { MemberModule } from '../member/member.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
 	imports: [
-		MongooseModule.forFeature([{ name: 'Follow', schema: FollowSchema }]), AuthModule, MemberModule
+		MongooseModule.forFeature([{ name: 'Follow', schema: FollowSchema }]),
+		AuthModule,
+		MemberModule,
+		NotificationModule,
 	],
 	providers: [FollowResolver, FollowService],
 	exports: [FollowService],

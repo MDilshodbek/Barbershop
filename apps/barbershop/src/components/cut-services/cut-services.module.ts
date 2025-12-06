@@ -8,5 +8,6 @@ import { CutServicesResolver } from './cut-services.resolver';
 @Module({
 	imports: [MongooseModule.forFeature([{ name: 'Services', schema: ServiceSchema }]), AuthModule],
 	providers: [CutServicesResolver, CutServicesService],
+	exports: [CutServicesService],
 })
 export class CutServicesModule {}

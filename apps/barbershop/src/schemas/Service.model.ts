@@ -30,16 +30,6 @@ const ServiceSchema = new Schema(
 			required: true,
 		},
 
-		serviceLikes: {
-			type: Number,
-			default: 0,
-		},
-
-		serviceRank: {
-			type: Number,
-			default: 0,
-		},
-
 		serviceImages: {
 			type: [String],
 			required: true,
@@ -48,6 +38,12 @@ const ServiceSchema = new Schema(
 		serviceDesc: {
 			type: String,
 		},
+
+		serviceReviews: {
+			type: Number,
+			default: 0,
+		},
+
 		deletedAt: {
 			type: Date,
 		},

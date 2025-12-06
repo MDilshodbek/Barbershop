@@ -13,6 +13,7 @@ import {
 } from '../../libs/dto/reservation/reservation.input';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { ObjectId } from 'mongoose';
+import { ReserveUpdate } from '../../libs/dto/reservation/reservation.update';
 
 @Resolver()
 export class ReservationResolver {
@@ -60,7 +61,18 @@ export class ReservationResolver {
 		@Args('input', { nullable: true }) input: BarberScheduleInquiry,
 		@AuthMember('_id') barberId: ObjectId,
 	): Promise<Reservations> {
-		console.log('Query: getMyReservations');
+		console.log('Query: getBarberSchedules');
 		return await this.reserveService.getBarberSchedules(barberId, input);
+	}
+
+	@Roles(MemberType.BARBER)
+	@UseGuards(RolesGuard)
+	@Query(() => Reservation)
+	public async updateReservation(
+		@Args('input') input: ReserveUpdate,
+		@AuthMember('_id') barberId: ObjectId,
+	): Promise<Reservation> {
+		console.log('Query: updateReservation');
+		return await this.reserveService.updateReservation(barberId, input);
 	}
 }

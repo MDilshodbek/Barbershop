@@ -15,12 +15,6 @@ const ReserveSchema = new Schema(
 			ref: 'Member',
 		},
 
-		barberServiceId: {
-			type: Schema.Types.ObjectId,
-			required: true,
-			ref: 'BarberService',
-		},
-
 		reserveRefId: {
 			type: Schema.Types.ObjectId,
 			required: true,
@@ -39,6 +33,22 @@ const ReserveSchema = new Schema(
 
 		reserveDay: {
 			type: Date,
+			required: true,
+		},
+
+		serviceId: {
+			type: Schema.Types.ObjectId,
+			required: true,
+			ref: 'Services',
+		},
+
+		serviceName: {
+			type: String,
+			required: true,
+		},
+
+		servicePrice: {
+			type: Number,
 			required: true,
 		},
 
@@ -63,7 +73,7 @@ ReserveSchema.index(
 	{
 		unique: true,
 		partialFilterExpression: {
-			reserveStatus: { $in: [ReserveStatus.BOOKED, ReserveStatus.CONFIRMED] },
+			reserveStatus: ReserveStatus.BOOKED,
 		},
 	},
 );
@@ -73,7 +83,7 @@ ReserveSchema.index(
 	{
 		unique: true,
 		partialFilterExpression: {
-			reserveStatus: { $in: [ReserveStatus.BOOKED, ReserveStatus.CONFIRMED] },
+			reserveStatus: ReserveStatus.BOOKED,
 		},
 	},
 );

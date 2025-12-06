@@ -10,7 +10,6 @@ import { ViewGroup } from '../../libs/enums/view.enum';
 
 @Injectable()
 export class ViewService {
-	likeModel: any;
 	constructor(@InjectModel('View') private readonly viewModel: Model<View>) {}
 
 	public async recordView(input: ViewInput): Promise<View | null> {

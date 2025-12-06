@@ -10,7 +10,9 @@ registerEnumType(ReviewStatus, {
 
 export enum ReviewGroup {
 	MEMBER = 'MEMBER',
+	SERVICE = 'SERVICE',
 }
+
 registerEnumType(ReviewGroup, {
 	name: 'ReviewGroup',
 });

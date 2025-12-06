@@ -4,11 +4,11 @@ export enum ServiceType {
 	CUT = 'CUT',
 	BEARD = 'BEARD',
 	MODELING = 'MODELING',
-	WASH = 'WASH',
 	LONG = 'LONG',
-	CHILDREN = 'CHILDREN',
 	PERM = 'PERM',
 	COLOR = 'COLOR',
+	CHILDREN = 'CHILDREN',
+	WASH = 'WASH',
 	MASSAGE = 'MASSAGE',
 }
 registerEnumType(ServiceType, {

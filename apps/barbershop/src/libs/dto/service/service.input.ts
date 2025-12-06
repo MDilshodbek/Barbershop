@@ -1,5 +1,5 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, Length } from 'class-validator';
+import { Field, InputType, Int } from '@nestjs/graphql';
+import { IsNotEmpty, IsOptional, Min } from 'class-validator';
 import { ServiceStatus, ServiceType } from '../../enums/service.enum';
 
 @InputType()
@@ -26,11 +26,21 @@ export class ServiceInput {
 
 	@IsNotEmpty()
 	@Field(() => [String])
-	serviceImages: String[];
+	serviceImages: string[];
 }
 
 @InputType()
 export class ServiceInquiry {
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	page: number;
+
+	@IsNotEmpty()
+	@Min(1)
+	@Field(() => Int)
+	limit: number;
+
 	@IsOptional()
 	@Field(() => String, { nullable: true })
 	text?: string;

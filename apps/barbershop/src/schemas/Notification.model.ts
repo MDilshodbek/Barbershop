@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { NotificationGroup, NotificationStatus, NotificationType } from '../libs/enums/notification.enum';
+import { NotificationStatus, NotificationType } from '../libs/enums/notification.enum';
 
 const NotificationSchema = new Schema(
 	{
@@ -12,21 +12,10 @@ const NotificationSchema = new Schema(
 		notificationStatus: {
 			type: String,
 			enum: NotificationStatus,
-			default: NotificationStatus.WAIT,
+			default: NotificationStatus.UNREAD,
 		},
 
-		notificationGroup: {
-			type: String,
-			enum: NotificationGroup,
-			required: true,
-		},
-
-		notificationTitle: {
-			type: String,
-			required: true,
-		},
-
-		notificationDesc: {
+		notificationMessage: {
 			type: String,
 		},
 
@@ -42,14 +31,14 @@ const NotificationSchema = new Schema(
 			ref: 'Member',
 		},
 
-		propertyId: {
+		entityId: {
 			type: Schema.Types.ObjectId,
-			ref: 'Property',
+			required: true,
 		},
 
-		articleId: {
-			type: Schema.Types.ObjectId,
-			ref: 'BoardArticle',
+		readAt: {
+			type: Date,
+			default: null,
 		},
 	},
 	{ timestamps: true, collection: 'notifications' },

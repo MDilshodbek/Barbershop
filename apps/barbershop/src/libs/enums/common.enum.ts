@@ -19,8 +19,18 @@ export enum Message {
 	NOT_ALLOWED_REQUEST = 'Not Allowed Request!',
 	PROVIDE_ALLOWED_FORMAT = 'Please provide jpg, jpeg or png images!',
 	SELF_SUBSCRIPTION_DENIED = 'Self subscription is denied',
-	DUPLICATE_BARBER_SERVICE = 'This barber already has this service.',
 }
+
+export enum NotificationMessage {
+  APPOINTMENT_CREATED = 'You have a new appointment.',
+  APPOINTMENT_CANCELLED = 'Your appointment cancelled.',
+  COMMENT_CREATED = 'You have a new comment.',
+  REVIEW_CREATED = 'You have a new review.',
+  LIKE_CREATED = 'You have a new like.',
+  FOLLOW_CREATED = 'You have a new follower.',
+  REVIEW_REQUEST = 'Please write a review about our recent service.',
+}
+
 
 export enum Direction {
 	ASC = 1,

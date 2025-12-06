@@ -26,7 +26,7 @@ const BoardArticleSchema = new Schema(
 		},
 
 		articleImage: {
-			type: String,
+			type: [String],
 		},
 
 		articleLikes: {

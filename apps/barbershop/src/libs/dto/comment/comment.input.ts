@@ -18,7 +18,7 @@ export class CommentInput {
 
 	@IsNotEmpty()
 	@Field(() => String)
-	commentRefId: ObjectId;
+	commentTargetId: ObjectId;
 
 	memberId?: ObjectId;
 }
@@ -27,7 +27,7 @@ export class CommentInput {
 class CISearch {
 	@IsNotEmpty()
 	@Field(() => String)
-	commentRefId: ObjectId;
+	commentTargetId: ObjectId;
 }
 
 @InputType()

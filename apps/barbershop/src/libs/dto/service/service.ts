@@ -23,17 +23,14 @@ export class Service {
 	@Field(() => Int)
 	servicePrice: number;
 
-	@Field(() => Int)
-	serviceLikes: number;
-
-	@Field(() => Int)
-	serviceRank: number;
-
 	@Field(() => [String])
 	serviceImages: string[];
 
 	@Field(() => String, { nullable: true })
 	serviceDesc?: string;
+
+	@Field(() => Int)
+	serviceReviews: number;
 
 	@Field(() => Date)
 	createdAt: Date;

@@ -1,7 +1,6 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { MemberAuthType, MemberLevel, MemberStatus, MemberType } from '../../enums/member.enum';
-import { BCutServices } from '../barber-service/b-services';
 import { MeLiked } from '../like/like';
 import { MeFollowed } from '../follow/follow';
 

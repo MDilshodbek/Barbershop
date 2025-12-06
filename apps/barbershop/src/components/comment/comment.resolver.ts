@@ -30,34 +30,33 @@ export class CommentResolver {
 	@UseGuards(AuthGuard)
 	@Mutation((returns) => Comment)
 	public async updateComment(
-	    @Args('input') input: CommentUpdate,
-	    @AuthMember('_id') memberId: ObjectId,
+		@Args('input') input: CommentUpdate,
+		@AuthMember('_id') memberId: ObjectId,
 	): Promise<Comment> {
-	    console.log('Mutation: updateComment');
-	    input._id = shapeIntoMongoObjectId(input._id);
-	    return await this.commentService.updateComment(memberId, input);
+		console.log('Mutation: updateComment');
+		input._id = shapeIntoMongoObjectId(input._id);
+		return await this.commentService.updateComment(memberId, input);
 	}
 
 	@UseGuards(WithoutGuard)
-		@Query((returns) => Comments)
-		public async getComments(
-			@Args('input') input: CommentsInquiry,
-			@AuthMember('_id') memberId: ObjectId,
-		): Promise<Comments> {
-			console.log('Query: getComments');
-			input.search.commentRefId = shapeIntoMongoObjectId(input.search.commentRefId)
-			const result = await this.commentService.getComments(memberId, input);
-			return result
-		}
+	@Query((returns) => Comments)
+	public async getComments(
+		@Args('input') input: CommentsInquiry,
+		@AuthMember('_id') memberId: ObjectId,
+	): Promise<Comments> {
+		console.log('Query: getComments');
+		input.search.commentTargetId = shapeIntoMongoObjectId(input.search.commentTargetId);
+		const result = await this.commentService.getComments(memberId, input);
+		return result;
+	}
 
-		// Admin
-
-		@Roles(MemberType.ADMIN)
-			@UseGuards(RolesGuard)
-			@Mutation((returns) => Comment)
-			public async removeCommentByAdmin(@Args('commentId') input: string): Promise<Comment> {
-				console.log('Mutation: removeCommentByAdmin');
-				const commentId = shapeIntoMongoObjectId(input);
-				return await this.commentService.removeCommentByAdmin(commentId);
-			}
+	// Admin
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Mutation((returns) => Comment)
+	public async removeCommentByAdmin(@Args('commentId') input: string): Promise<Comment> {
+		console.log('Mutation: removeCommentByAdmin');
+		const commentId = shapeIntoMongoObjectId(input);
+		return await this.commentService.removeCommentByAdmin(commentId);
+	}
 }

@@ -3,7 +3,6 @@ import { BoardArticleCategory, BoardArticleStatus } from '../../enums/board-arti
 import { ObjectId } from 'mongoose';
 import { Member, TotalCounter } from '../member/member';
 import { MeLiked } from '../like/like';
-// import { MeLiked } from '../like/like';
 
 @ObjectType()
 export class BoardArticle {
@@ -22,8 +21,8 @@ export class BoardArticle {
 	@Field(() => String)
 	articleContent: string;
 
-	@Field(() => String, { nullable: true })
-	articleImage?: string;
+	@Field(() => [String], { nullable: true })
+	articleImage?: string[];
 
 	@Field(() => Int)
 	articleViews: number;

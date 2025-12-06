@@ -9,110 +9,98 @@ import {
 	ReserveInquiry,
 } from '../../libs/dto/reservation/reservation.input';
 import { Direction, Message } from '../../libs/enums/common.enum';
-import * as moment from 'moment';
 import { ReserveStatus } from '../../libs/enums/reservation.enum';
-import { BCutService } from '../../libs/dto/barber-service/b-services';
-import { ServiceType } from '../../libs/enums/service.enum';
 import { Member } from '../../libs/dto/member/member';
 import { MemberService } from '../member/member.service';
 import { MemberStatus } from '../../libs/enums/member.enum';
 import { Service } from '../../libs/dto/service/service';
 import { T } from '../../libs/types/common';
-import { lookupBarberServiceEffective, lookupBarber, lookupUser } from '../../libs/pipelines/barber-service.pipes';
-import { kstDayWindow, seoulDayWindowUTC, seoulHourMinute, toKstYMD, ymdInSeoul } from '../../libs/config';
+import { lookupBarber, lookupUser } from '../../libs/pipelines/barber-service.pipes';
+import { kstDayWindow, seoulDayWindowUTC, seoulHourMinute, ymdInSeoul } from '../../libs/config';
+import { NotificationService } from '../notification/notification.service';
+import { ReserveUpdate } from '../../libs/dto/reservation/reservation.update';
 
 @Injectable()
 export class ReservationService {
 	constructor(
 		@InjectModel('Reservation') private readonly reserveModel: Model<Reservation>,
-		@InjectModel('BarberService') private readonly bServicesModel: Model<BCutService>,
 		@InjectModel('Member') private readonly memberModel: Model<Member>,
 		@InjectModel('Service') private readonly servicesModel: Model<Service>,
 		private memberService: MemberService,
+		private notificationService: NotificationService,
 	) {}
 
-	private async getEffectiveDurationMin(barberServiceId: ObjectId, barberId: ObjectId): Promise<number> {
-		// UNCHANGED
-		const bsvc = await this.bServicesModel
-			.findOne({ _id: barberServiceId, barberId })
-			.select('_id barberId serviceId barberServiceDuration')
-			.lean()
-			.exec();
-		if (!bsvc) throw new BadRequestException('This service does not belong to the selected barber');
-
-		let minutes = bsvc.barberServiceDuration;
-		if (minutes == null) {
-			const base = await this.servicesModel.findById(bsvc.serviceId).select('serviceDuration').lean().exec();
-			minutes = base?.serviceDuration;
-		}
-
-		if (typeof minutes !== 'number' || minutes <= 0) {
-			throw new BadRequestException('Service duration not defined');
-		}
-		return Math.trunc(minutes);
-	}
-
 	public async createReservation(input: ReserveInput): Promise<Reservation> {
-		const { barberId, barberServiceId, reserveRefId, reserveTime } = input;
+		const { barberId, serviceId, reserveRefId, reserveTime } = input;
 		console.log('input:', input);
 
-		// UNCHANGED: upfront guard
-		if (!barberId || !barberServiceId || !reserveTime || !reserveRefId) {
+		// upfront guard
+		if (!barberId || !serviceId || !reserveTime || !reserveRefId) {
 			throw new BadRequestException(Message.BAD_REQUEST);
 		}
 
-		// CHANGED: parse client time as Date; we will validate against Seoul time
+		// parse client time
 		const start = new Date(reserveTime);
-		if (isNaN(start.getTime())) throw new BadRequestException('Invalid reserveTime');
+		if (isNaN(start.getTime())) {
+			throw new BadRequestException('Invalid reserveTime');
+		}
 
 		const now = new Date();
 		if (start.getTime() <= now.getTime()) {
 			throw new BadRequestException('Reservation must be in the future');
 		}
 
-		// ADDED: compute day (Seoul) and day window (UTC) for validation and storage
+		// day / window calculation
 		const ymd = ymdInSeoul(start);
 		const { startUtc: dayStartUtc, endUtc: dayEndUtc } = seoulDayWindowUTC(ymd, 9, 20);
 
-		// ADDED: validate start inside 09:00–20:00 Seoul
+		// start in 09:00–20:00
 		const { h: startH, m: startM } = seoulHourMinute(start);
 		if (startH < 9 || startH >= 20) {
 			throw new BadRequestException('Reservation must start between 09:00 and 20:00 (Seoul time)');
 		}
 
-		// UNCHANGED: verify the service belongs to the selected barber
-		const bService = await this.bServicesModel
-			.findOne({ _id: barberServiceId, barberId })
-			.select('_id barberId')
+		// load base Service info for denormalized snapshot
+		const service = await this.servicesModel
+			.findById(serviceId)
+			.select('_id serviceName serviceDuration servicePrice')
 			.lean()
 			.exec();
-		if (!bService) throw new BadRequestException('This service does not belong to the selected barber');
 
-		// ADDED: get effective duration and compute end time
-		const durationMin = await this.getEffectiveDurationMin(barberServiceId, barberId);
+		if (!service) {
+			throw new BadRequestException('Service not found');
+		}
+
+		// compute duration from Service
+		let durationMin = service.serviceDuration;
+		if (typeof durationMin !== 'number' || durationMin <= 0) {
+			throw new BadRequestException('Service duration not defined');
+		}
+		durationMin = Math.trunc(durationMin); // COMMENT: force integer minutes
+
+		// compute end time using denormalized duration
 		const end = new Date(start.getTime() + durationMin * 60000);
 
-		// ADDED: ensure END does not go past 20:00 Seoul
+		// ensure END does not go past 20:00
 		const { h: endH, m: endM } = seoulHourMinute(end);
-		// if end time is 20:00 or later, it violates the window
 		if (endH > 20 || (endH === 20 && endM > 0)) {
 			throw new BadRequestException('Reservation must end by 20:00 (Seoul time)');
 		}
 
-		// ADDED: ensure the whole interval sits within today’s Seoul window (defensive)
+		// keep full interval within window
 		if (start < dayStartUtc || end > dayEndUtc) {
-			throw new BadRequestException('Reservation must be within 09:00–20:00 for the selected day (Seoul time)');
+			throw new BadRequestException('Reservation must be within 09:00 to 20:00 for the selected day (Seoul time)');
 		}
 
-		// CHANGED: compute reserveDay as midnight of the same Seoul day (stored in UTC)
+		// reserveDay
 		const reserveDayKst = new Date(`${ymd}T00:00:00+09:00`);
 		const reserveDayUtc = new Date(reserveDayKst.toISOString());
 
-		// CHANGED: block overlap with active reservations inside the same day window
+		// check barber availability
 		const conflict = await this.reserveModel
 			.findOne({
 				barberId,
-				reserveStatus: { $in: [ReserveStatus.BOOKED, ReserveStatus.CONFIRMED] }, // keep your active set
+				reserveStatus: ReserveStatus.BOOKED,
 				reserveTime: { $lt: end },
 				reserveEndTime: { $gt: start },
 			})
@@ -120,45 +108,35 @@ export class ReservationService {
 			.lean()
 			.exec();
 
-		if (conflict) throw new BadRequestException('Selected time is not available');
+		if (conflict) {
+			throw new BadRequestException('Selected time is not available');
+		}
 
 		try {
-			// CHANGED: persist normalized fields
+			// persist denormalized service fields
 			const doc = await this.reserveModel.create({
 				...input,
-				reserveTime: start, // original start instant
-				reserveEndTime: end, // computed end instant
-				reserveDay: reserveDayUtc, // midnight of the same Seoul day (UTC)
-				serviceDurationMin: durationMin, // computed duration
+				reserveTime: start,
+				reserveEndTime: end,
+				reserveDay: reserveDayUtc,
+
+				// denormalized snapshot from Service at booking time
+				serviceId: service._id,
+				serviceTitle: service.serviceTitle,
+				servicePrice: service.servicePrice,
+				serviceDurationMin: durationMin,
 			});
+
+			await this.notificationService.createAppointmentNotification({
+				barberId: doc.barberId,
+				memberId: reserveRefId,
+				appointmentId: doc._id,
+			});
+
 			return doc;
 		} catch {
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
-	}
-
-	// ADDED: list barbers who offer a given service type
-	public async listBarbersByServiceType(serviceType: ServiceType) {
-		return await this.bServicesModel
-			.aggregate([
-				{ $lookup: { from: 'services', localField: 'serviceId', foreignField: '_id', as: 'base' } },
-				{ $unwind: '$base' },
-				{ $match: { 'base.serviceType': serviceType, barberServiceStatus: 'ACTIVE' } },
-				{ $group: { _id: '$barberId' } },
-			])
-			.exec();
-	}
-
-	// ADDED: list services for a given barber
-	public async listServicesByBarber(barberId: ObjectId) {
-		return await this.bServicesModel
-			.aggregate([
-				{ $match: { barberId, barberServiceStatus: 'ACTIVE' } },
-				{ $lookup: { from: 'services', localField: 'serviceId', foreignField: '_id', as: 'base' } },
-				{ $unwind: '$base' },
-				{ $project: { _id: 1, serviceId: 1, 'base.serviceTitle': 1, 'base.serviceType': 1 } },
-			])
-			.exec();
 	}
 
 	public async cancelReservation(input: CancelReservationInput, memberId: ObjectId): Promise<Reservation> {
@@ -172,15 +150,15 @@ export class ReservationService {
 			.exec();
 		if (!reservation) throw new BadRequestException('Reservation not found');
 
-		// only cancellable states
-		if (![ReserveStatus.BOOKED, ReserveStatus.CONFIRMED].includes(reservation.reserveStatus)) {
+		// only cancellable state
+		if (reservation.reserveStatus !== ReserveStatus.BOOKED) {
 			throw new BadRequestException('Reservation cannot be cancelled');
 		}
 
 		// set CANCELLED
 		const updated = await this.reserveModel
 			.findOneAndUpdate(
-				{ _id: reservationId, reserveStatus: { $in: [ReserveStatus.BOOKED, ReserveStatus.CONFIRMED] } },
+				{ _id: reservationId, reserveStatus: ReserveStatus.BOOKED },
 				{
 					$set: {
 						reserveStatus: ReserveStatus.CANCELLED,
@@ -197,7 +175,7 @@ export class ReservationService {
 		// increment memberWarnings ONLY when the USER cancels (not barber/admin)
 		const isOwner = String(reservation.reserveRefId) === String(memberId);
 		if (isOwner) {
-			// CHANGED: use your memberStatsEditor to add +1 to memberWarnings
+			//  add +1 to memberWarnings
 			const user = await this.memberService.memberStatsEditor({
 				_id: reservation.reserveRefId,
 				targetKey: 'memberWarnings',
@@ -210,7 +188,15 @@ export class ReservationService {
 			}
 		}
 
-		return updated;
+		if (updated) {
+			await this.notificationService.createCancelledReservationNotification({
+				barberId: updated.barberId,
+				memberId: updated.reserveRefId,
+				appointmentId: updated._id,
+			});
+
+			return updated;
+		}
 	}
 
 	public async getMyReservations(memberId: ObjectId, input: ReserveInquiry): Promise<Reservations> {
@@ -230,9 +216,6 @@ export class ReservationService {
 							lookupBarber as PipelineStage,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } } as PipelineStage,
 							{ $set: { barberData: '$memberData' } } as PipelineStage,
-
-							...lookupBarberServiceEffective, // PipelineStage[]
-							{ $unwind: { path: '$barberServiceData', preserveNullAndEmptyArrays: true } } as PipelineStage,
 						] as PipelineStage[],
 
 						metaCounter: [{ $count: 'total' }] as unknown as PipelineStage[],
@@ -278,9 +261,6 @@ export class ReservationService {
 						lookupUser as PipelineStage,
 						{ $unwind: { path: '$clientData', preserveNullAndEmptyArrays: true } } as PipelineStage,
 
-						...lookupBarberServiceEffective,
-						{ $unwind: { path: '$barberServiceData', preserveNullAndEmptyArrays: true } } as PipelineStage,
-
 						...textStage,
 					] as unknown as PipelineStage[],
 
@@ -292,5 +272,72 @@ export class ReservationService {
 		const res = await this.reserveModel.aggregate(pipeline).exec();
 		if (!res?.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
 		return res[0];
+	}
+
+	public async updateReservation(barberId: ObjectId, input: ReserveUpdate): Promise<Reservation> {
+		const { reservationId, reserveStatus } = input;
+
+		// COMMENT: map input status into actual ReserveStatus
+		const nextStatus = reserveStatus === ReserveStatus.FINISH ? ReserveStatus.FINISH : ReserveStatus.NOSHOW;
+
+		// COMMENT: update only if this reservation:
+		// - belongs to barber
+		// - is currently BOOKED (not already finished / cancelled / no-show)
+		const reservation = await this.reserveModel
+			.findOneAndUpdate(
+				{
+					_id: reservationId,
+					barberId,
+					reserveStatus: ReserveStatus.BOOKED,
+				},
+				{
+					$set: {
+						reserveStatus: nextStatus,
+					},
+				},
+				{ new: true, runValidators: true },
+			)
+			.lean()
+			.exec();
+
+		if (!reservation) {
+			// not found, belongs to another barber, or no longer BOOKED
+			throw new BadRequestException('Reservation cannot be updated');
+		}
+
+		// Common values for post-actions
+		const userId = reservation.reserveRefId; // COMMENT: user who booked the reservation
+		const reservationObjectId = reservation._id;
+
+		// If finished, give barber 1 point and notify user to rate service
+		if (nextStatus === ReserveStatus.FINISH) {
+			// give +1 point to barber (adjust targetKey to your actual field)
+			await this.memberService.memberStatsEditor({
+				_id: barberId,
+				targetKey: 'memberPoints', 
+				modifier: 1,
+			});
+
+			await this.notificationService.createRateServiceNotification({
+				barberId,
+				userId: reservation.reserveRefId,
+				reservationId: reservation._id, 
+			});
+		}
+
+		// If no-show, increase memberWarnings and block at 3+
+		if (nextStatus === ReserveStatus.NOSHOW) {
+			const user = await this.memberService.memberStatsEditor({
+				_id: userId,
+				targetKey: 'memberWarnings',
+				modifier: 1,
+			});
+
+			if ((user?.memberWarnings ?? 0) >= 3 && user.memberStatus !== MemberStatus.BLOCK) {
+				await this.memberModel.updateOne({ _id: user._id }, { $set: { memberStatus: MemberStatus.BLOCK } });
+			}
+		}
+
+		return reservation as unknown as Reservation;
 	}
 }

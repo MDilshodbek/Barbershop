@@ -1,7 +1,6 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import { IsDate, IsIn, IsNotEmpty, IsOptional, Matches, Min } from 'class-validator';
 import { ObjectId } from 'mongoose';
-import { ReserveStatus } from '../../enums/reservation.enum';
 import { availableReserveSorts, availableScheduleSorts } from '../../config';
 import { Direction } from '../../enums/common.enum';
 
@@ -13,7 +12,7 @@ export class ReserveInput {
 
 	@IsNotEmpty()
 	@Field(() => String)
-	barberServiceId: ObjectId;
+	serviceId: ObjectId;
 
 	@IsOptional()
 	@Field(() => String, { nullable: true })

@@ -6,16 +6,23 @@ import { MemberService } from '../member/member.service';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { FollowInquiry } from '../../libs/dto/follow/follow.input';
 import { T } from '../../libs/types/common';
-import { lookupAuthMemberFollowed, lookupAuthMemberLiked, lookupFollowerData, lookupFollowingData } from '../../libs/config';
+import {
+	lookupAuthMemberFollowed,
+	lookupAuthMemberLiked,
+	lookupFollowerData,
+	lookupFollowingData,
+} from '../../libs/config';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class FollowService {
 	constructor(
 		@InjectModel('Follow') private readonly followModel: Model<Follower | Following>,
 		private readonly memberService: MemberService,
+		private readonly notificationService: NotificationService,
 	) {}
 
-    	public async subscribe(followerId: ObjectId, followingId: ObjectId): Promise<Follower> {
+	public async subscribe(followerId: ObjectId, followingId: ObjectId): Promise<Follower> {
 		if (followerId.toString() === followingId.toString()) {
 			throw new InternalServerErrorException(Message.SELF_SUBSCRIPTION_DENIED);
 		}
@@ -27,6 +34,12 @@ export class FollowService {
 
 		await this.memberService.memberStatsEditor({ _id: followerId, targetKey: 'memberFollowings', modifier: 1 });
 		await this.memberService.memberStatsEditor({ _id: followingId, targetKey: 'memberFollowers', modifier: 1 });
+
+		await this.notificationService.createSubscribeNotification({
+			receiverId: followingId,
+			authorId: followerId,
+			subscriptionId: result._id as ObjectId,
+		});
 
 		return result;
 	}

@@ -17,13 +17,13 @@ export class BoardArticleInput {
 	articleTitle: string;
 
 	@IsNotEmpty()
-	@Length(3, 250)
+	@Length(3, 2500)
 	@Field(() => String)
 	articleContent: string;
 
 	@IsOptional()
-	@Field(() => String, { nullable: true })
-	articleImage?: string;
+	@Field(() => [String], { nullable: true })
+	articleImage?: string[];
 
 	memberId?: ObjectId;
 }

@@ -31,12 +31,6 @@ const ReviewSchema = new Schema(
 			ref: 'Member',
 		},
 
-		appointmentId: {
-			type: Schema.Types.ObjectId,
-			required: true,
-			ref: 'Appointment',
-		},
-
 		rating: {
 			type: Number,
 			required: true,
@@ -51,7 +45,5 @@ const ReviewSchema = new Schema(
 	},
 	{ timestamps: true, collection: 'reviews' },
 );
-
-ReviewSchema.index({ memberId: 1, reviewRefId: 1 }, { unique: true });
 
 export default ReviewSchema;

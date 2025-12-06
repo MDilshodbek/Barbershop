@@ -14,12 +14,13 @@ export const shapeIntoMongoObjectId = (target: any) => {
 	return typeof target === 'string' ? new ObjectId(target) : target;
 };
 
-export const availableBarberSorts = ['gender', 'level', 'memberLike', 'memberRank'];
-export const availableMemberSorts = ['createdAt', 'gender', 'level', 'memberLike', 'memberRank'];
+export const availableMemberSorts = ['createdAt', 'memberLevel', 'memberLikes', 'memberRank'];
 export const availableReserveSorts = ['createdAt', 'oldest'];
 export const availableScheduleSorts = ['daily', 'weekly'];
 export const availableBoardArticleSorts = ['createdAt', 'updatedAt', 'articleLikes', 'articleViews'];
 export const availableCommentSorts = ['createdAt', 'updatedAt'];
+export const availableReviewSorts = ['createdAt', 'updatedAt', 'rating'];
+export const availableNotificationSorts = ['createdAt', 'read', 'unread'];
 
 export const lookupFollowingData = {
 	$lookup: {

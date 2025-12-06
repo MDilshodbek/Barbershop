@@ -1,7 +1,7 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
 import { IsIn, IsNotEmpty, IsOptional, Length, Min } from 'class-validator';
 import { MemberAuthType, MemberLevel, MemberStatus, MemberType } from '../../enums/member.enum';
-import { availableBarberSorts, availableMemberSorts } from '../../config';
+import { availableMemberSorts } from '../../config';
 import { Direction } from '../../enums/common.enum';
 
 @InputType()
@@ -68,7 +68,7 @@ export class BarbersInquiry {
 	limit: number;
 
 	@IsOptional()
-	@IsIn(availableBarberSorts)
+	@IsIn(availableMemberSorts)
 	@Field(() => String, { nullable: true })
 	sort?: string;
 

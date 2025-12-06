@@ -4,7 +4,7 @@ import { Model, ObjectId } from 'mongoose';
 import { Service, Services } from '../../libs/dto/service/service';
 import { ServiceInput, ServiceInquiry } from '../../libs/dto/service/service.input';
 import { Message } from '../../libs/enums/common.enum';
-import { T } from '../../libs/types/common';
+import { StatisticModifier, T } from '../../libs/types/common';
 import { ServiceStatus } from '../../libs/enums/service.enum';
 import { ServiceUpdate } from '../../libs/dto/service/service.update';
 
@@ -68,7 +68,7 @@ export class CutServicesService {
 				{ $sort: { displayOrder: 1, _id: 1 } },
 				{
 					$facet: {
-						list: [],
+						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
 						metaCounter: [{ $count: 'total' }],
 					},
 				},
@@ -118,5 +118,10 @@ export class CutServicesService {
 		console.log('result:', result);
 
 		return result[0];
+	}
+
+	public async serviceStatsEditor(input: StatisticModifier): Promise<Service> {
+		const { _id, targetKey, modifier } = input;
+		return await this.servicesModel.findByIdAndUpdate(_id, { $inc: { [targetKey]: modifier } }, { new: true }).exec();
 	}
 }

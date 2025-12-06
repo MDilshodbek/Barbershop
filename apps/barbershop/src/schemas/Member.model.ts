@@ -1,6 +1,5 @@
 import { Schema } from 'mongoose';
 import { MemberAuthType, MemberLevel, MemberStatus, MemberType } from '../libs/enums/member.enum';
-import BarberServiceSchema from './BarberServices.model';
 
 const MemberSchema = new Schema(
 	{
