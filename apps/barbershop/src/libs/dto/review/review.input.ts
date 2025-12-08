@@ -33,6 +33,10 @@ export class ReviewInput {
 @InputType()
 class RISearch {
 	@IsNotEmpty()
+	@Field(() => ReviewGroup)
+	reviewGroup: ReviewGroup;
+
+	@IsNotEmpty()
 	@Field(() => String)
 	reviewRefId: ObjectId;
 }
@@ -87,4 +91,8 @@ export class AllReviewInquiry {
 	@IsOptional()
 	@Field(() => ReviewStatus, { nullable: true })
 	reviewStatus?: ReviewStatus;
+
+	@IsNotEmpty()
+	@Field(() => ReviewGroup)
+	reviewGroup: ReviewGroup;
 }

@@ -1,7 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ObjectId } from 'mongoose';
 import { Member, TotalCounter } from '../member/member';
-import { ReviewStatus } from '../../enums/review.enum';
+import { ReviewGroup, ReviewStatus } from '../../enums/review.enum';
 
 @ObjectType()
 export class Review {
@@ -10,6 +10,9 @@ export class Review {
 
 	@Field(() => ReviewStatus)
 	reviewStatus: ReviewStatus;
+
+	@Field(() => ReviewGroup)
+	reviewGroup: ReviewGroup;
 
 	@Field(() => String)
 	reviewContent: string;

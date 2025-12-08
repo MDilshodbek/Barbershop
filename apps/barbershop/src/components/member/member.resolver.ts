@@ -1,7 +1,13 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { MemberService } from './member.service';
 import { BadRequestException, InternalServerErrorException, UseGuards } from '@nestjs/common';
-import { BarbersInquiry, LoginInput, MemberInput, MembersInquiry, OrdinaryInquiry } from '../../libs/dto/member/member.input';
+import {
+	BarbersInquiry,
+	LoginInput,
+	MemberInput,
+	MembersInquiry,
+	OrdinaryInquiry,
+} from '../../libs/dto/member/member.input';
 import { Member, Members } from '../../libs/dto/member/member';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
@@ -101,7 +107,7 @@ export class MemberResolver {
 		return await this.memberService.getFavoriteMembers(memberId, input);
 	}
 
-		@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard)
 	@Query((returns) => Members)
 	public async getVisited(
 		@Args('input') input: OrdinaryInquiry,

@@ -78,8 +78,8 @@ export class ReviewService {
 	}
 
 	public async getReviews(memberId: ObjectId, input: ReviewInquiry): Promise<Reviews> {
-		const { reviewRefId } = input.search;
-		const match: T = { reviewRefId: reviewRefId, reviewStatus: ReviewStatus.ACTIVE };
+		const { reviewRefId, reviewGroup } = input.search;
+		const match: T = { reviewRefId: reviewRefId, reviewStatus: ReviewStatus.ACTIVE, reviewGroup };
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
 		const result: Reviews[] = await this.reviewModel
@@ -106,7 +106,8 @@ export class ReviewService {
 	}
 
 	public async getAllReviews(memberId: ObjectId, input: AllReviewInquiry): Promise<Reviews> {
-		const match: T = { reviewStatus: ReviewStatus.ACTIVE };
+		const { reviewGroup } = input;
+		const match: T = { reviewStatus: ReviewStatus.ACTIVE, reviewGroup };
 
 		const result: Reviews[] = await this.reviewModel
 			.aggregate([
