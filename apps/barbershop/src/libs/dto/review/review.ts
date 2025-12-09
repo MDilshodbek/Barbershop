@@ -14,8 +14,8 @@ export class Review {
 	@Field(() => ReviewGroup)
 	reviewGroup: ReviewGroup;
 
-	@Field(() => String)
-	reviewContent: string;
+	@Field(() => String, { nullable: true })
+	reviewContent?: string;
 
 	@Field(() => String)
 	reviewRefId: ObjectId;
@@ -27,7 +27,7 @@ export class Review {
 	rating: number;
 
 	@Field(() => [String], { nullable: true })
-	reviewImages: string[];
+	reviewImages?: string[];
 
 	@Field(() => Date)
 	createdAt: Date;

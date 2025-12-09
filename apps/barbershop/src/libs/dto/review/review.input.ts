@@ -11,9 +11,9 @@ export class ReviewInput {
 	@Field(() => ReviewGroup)
 	reviewGroup: ReviewGroup;
 
-	@IsNotEmpty()
-	@Field(() => String)
-	reviewContent: string;
+	@IsOptional()
+	@Field(() => String, { nullable: true })
+	reviewContent?: string;
 
 	@IsNotEmpty()
 	@Field(() => String)

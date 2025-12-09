@@ -17,7 +17,6 @@ const ReviewSchema = new Schema(
 
 		reviewContent: {
 			type: String,
-			required: true,
 		},
 
 		reviewRefId: {
