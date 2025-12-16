@@ -72,6 +72,15 @@ export class ReviewService {
 			})
 			.exec();
 
+		switch (input.reviewStatus) {
+			case ReviewStatus.DELETE:
+				await this.memberService.memberStatsEditor({
+					_id: input.reviewRefId,
+					targetKey: 'memberReviews',
+					modifier: -1,
+				});
+		}
+
 		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
 		return result;

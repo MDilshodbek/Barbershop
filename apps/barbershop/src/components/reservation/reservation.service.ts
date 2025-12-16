@@ -7,6 +7,7 @@ import {
 	CancelReservationInput,
 	ReserveInput,
 	ReserveInquiry,
+	SelectedBarberScheduleInquiry,
 } from '../../libs/dto/reservation/reservation.input';
 import { Direction, Message } from '../../libs/enums/common.enum';
 import { ReserveStatus } from '../../libs/enums/reservation.enum';
@@ -15,8 +16,14 @@ import { MemberService } from '../member/member.service';
 import { MemberStatus } from '../../libs/enums/member.enum';
 import { Service } from '../../libs/dto/service/service';
 import { T } from '../../libs/types/common';
-import { lookupBarber, lookupUser } from '../../libs/pipelines/barber-service.pipes';
-import { kstDayWindow, seoulDayWindowUTC, seoulHourMinute, ymdInSeoul } from '../../libs/config';
+import { lookupBarber, lookupService, lookupUser } from '../../libs/pipelines/barber-service.pipes';
+import {
+	kstDayWindow,
+	seoulDayWindowUTC,
+	seoulHourMinute,
+	shapeIntoMongoObjectId,
+	ymdInSeoul,
+} from '../../libs/config';
 import { NotificationService } from '../notification/notification.service';
 import { ReserveUpdate } from '../../libs/dto/reservation/reservation.update';
 
@@ -63,7 +70,7 @@ export class ReservationService {
 		// load base Service info for denormalized snapshot
 		const service = await this.servicesModel
 			.findById(serviceId)
-			.select('_id serviceName serviceDuration servicePrice')
+			.select('_id serviceTitle serviceDuration servicePrice')
 			.lean()
 			.exec();
 
@@ -134,13 +141,14 @@ export class ReservationService {
 			});
 
 			return doc;
-		} catch {
+		} catch (error) {
+			console.log('Error, createReservation:', (error as Error).message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
 
 	public async cancelReservation(input: CancelReservationInput, memberId: ObjectId): Promise<Reservation> {
-		const { reservationId, reason } = input;
+		const { reservationId, cancelReason } = input;
 
 		// fetch reservation
 		const reservation = await this.reserveModel
@@ -162,7 +170,7 @@ export class ReservationService {
 				{
 					$set: {
 						reserveStatus: ReserveStatus.CANCELLED,
-						cancelReason: reason ?? null,
+						cancelReason: cancelReason ?? null,
 						cancelledAt: new Date(),
 						cancelledById: memberId,
 					},
@@ -216,6 +224,10 @@ export class ReservationService {
 							lookupBarber as PipelineStage,
 							{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } } as PipelineStage,
 							{ $set: { barberData: '$memberData' } } as PipelineStage,
+
+							lookupService as PipelineStage,
+							{ $unwind: { path: '$serviceData', preserveNullAndEmptyArrays: true } } as PipelineStage,
+							{ $set: { serviceData: '$serviceData' } } as PipelineStage,
 						] as PipelineStage[],
 
 						metaCounter: [{ $count: 'total' }] as unknown as PipelineStage[],
@@ -243,10 +255,45 @@ export class ReservationService {
 		// 3) SORT
 		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
-		// 4) OPTIONAL
-		const textStage: PipelineStage[] = input?.text?.trim()
-			? [{ $match: { 'clientData.memberNick': { $regex: new RegExp(input.text.trim(), 'i') } } } as PipelineStage]
-			: [];
+		// 5) PIPELINE
+		const pipeline: PipelineStage[] = [
+			{ $match: match } as PipelineStage,
+			{ $sort: sort } as PipelineStage,
+			{
+				$facet: {
+					list: [
+						lookupUser as PipelineStage,
+						{ $unwind: { path: '$clientData', preserveNullAndEmptyArrays: true } } as PipelineStage,
+					] as unknown as PipelineStage[],
+
+					metaCounter: [{ $count: 'total' }] as unknown as PipelineStage[],
+				},
+			} as PipelineStage,
+		];
+
+		const res = await this.reserveModel.aggregate(pipeline).exec();
+		if (!res?.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+		return res[0];
+	}
+
+	public async getSelectedBarberSchedules(input: SelectedBarberScheduleInquiry): Promise<Reservations> {
+		// 1) BASE MATCH
+		let { barberId } = input;
+
+		barberId = shapeIntoMongoObjectId(input.barberId);
+
+		const match: any = { barberId: barberId };
+
+		const ymd: string | undefined =
+			input?.ymd?.trim?.() ?? (input?.reserveDay ? ymdInSeoul(new Date(input.reserveDay)) : undefined);
+
+		if (ymd) {
+			const { start, end } = kstDayWindow(ymd, 9, 20); // 09:00–20:00 KST → UTC Date
+			match.reserveTime = { $gte: start, $lt: end };
+		}
+
+		// 3) SORT
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
 
 		// 5) PIPELINE
 		const pipeline: PipelineStage[] = [
@@ -255,13 +302,8 @@ export class ReservationService {
 			{
 				$facet: {
 					list: [
-						{ $skip: (input.page - 1) * input.limit },
-						{ $limit: input.limit },
-
 						lookupUser as PipelineStage,
 						{ $unwind: { path: '$clientData', preserveNullAndEmptyArrays: true } } as PipelineStage,
-
-						...textStage,
 					] as unknown as PipelineStage[],
 
 					metaCounter: [{ $count: 'total' }] as unknown as PipelineStage[],
@@ -314,14 +356,14 @@ export class ReservationService {
 			// give +1 point to barber (adjust targetKey to your actual field)
 			await this.memberService.memberStatsEditor({
 				_id: barberId,
-				targetKey: 'memberPoints', 
+				targetKey: 'memberPoints',
 				modifier: 1,
 			});
 
 			await this.notificationService.createRateServiceNotification({
 				barberId,
 				userId: reservation.reserveRefId,
-				reservationId: reservation._id, 
+				reservationId: reservation._id,
 			});
 		}
 

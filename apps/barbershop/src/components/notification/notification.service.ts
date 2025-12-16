@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { NotificationStatus, NotificationType } from '../../libs/enums/notification.enum';
-import { NotificationMessage } from '../../libs/enums/common.enum';
+import { Message, NotificationMessage } from '../../libs/enums/common.enum';
+import { Notification, Notifications } from '../../libs/dto/notification/notification';
+import { NotificationInquiry } from '../../libs/dto/notification/notification.input';
+import { T } from '../../libs/types/common';
+import { lookupNoticeMember } from '../../libs/pipelines/barber-service.pipes';
 
 @Injectable()
 export class NotificationService {
@@ -127,30 +131,32 @@ export class NotificationService {
 		});
 	}
 
-	async markNotificationAsRead(params: { notificationId: ObjectId; memberId: ObjectId }): Promise<boolean> {
-		const { notificationId, memberId } = params;
-
-		const result = await this.notificationModel.updateOne(
-			{
-				_id: notificationId,
-				receiverId: memberId,
-				notificationStatus: NotificationStatus.UNREAD,
-			},
-			{
-				$set: {
-					notificationStatus: NotificationStatus.READ,
-					readAt: new Date(),
+	async markNotificationAsRead(memberId: ObjectId, noticeId: ObjectId): Promise<Notification> {
+		const notification = await this.notificationModel
+			.findOneAndUpdate(
+				{
+					_id: noticeId,
+					receiverId: memberId,
 				},
-			},
-		);
+				{
+					$set: {
+						notificationStatus: NotificationStatus.READ,
+						readAt: new Date(),
+					},
+				},
+				{ new: true },
+			)
+			.lean();
 
-		const modified = (result as any).modifiedCount ?? (result as any).nModified ?? 0;
+		if (!notification) {
+			throw new NotFoundException('Notification not found or not owned by this member');
+		}
 
-		return modified > 0;
+		return notification as Notification;
 	}
 
-	async markAllNotificationsAsRead(memberId: ObjectId): Promise<number> {
-		const result = await this.notificationModel.updateMany(
+	async markAllNotificationsAsRead(memberId: ObjectId): Promise<Notification[]> {
+		await this.notificationModel.updateMany(
 			{
 				receiverId: memberId,
 				notificationStatus: NotificationStatus.UNREAD,
@@ -163,8 +169,40 @@ export class NotificationService {
 			},
 		);
 
-		const modified = (result as any).modifiedCount ?? (result as any).nModified ?? 0;
+		const notifications = await this.notificationModel
+			.find({
+				receiverId: memberId,
+			})
+			.sort({ createdAt: -1 })
+			.lean();
 
-		return modified;
+		return notifications as Notification[];
+	}
+
+	async getMemberAllNotifications(memberId: ObjectId, input: NotificationInquiry): Promise<Notifications> {
+		const match: T = { receiverId: memberId };
+		const sort: Record<string, 1 | -1> = { createdAt: -1 };
+
+		const result: Notifications[] = await this.notificationModel
+			.aggregate([
+				{ $match: match },
+				{ $sort: sort },
+				{
+					$facet: {
+						list: [
+							{ $skip: (input.page - 1) * input.limit },
+							{ $limit: input.limit },
+							lookupNoticeMember,
+							{ $unwind: '$memberData' },
+						],
+						metaCounter: [{ $count: 'total' }],
+					},
+				},
+			])
+			.exec();
+
+		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
+
+		return result[0];
 	}
 }

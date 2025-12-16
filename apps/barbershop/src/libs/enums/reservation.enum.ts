@@ -5,7 +5,6 @@ export enum ReserveStatus {
 	CANCELLED = 'CANCELLED',
 	FINISH = 'FINISH',
 	NOSHOW = 'NOSHOW',
-	CONFIRMED = 'CONFIRMED',
 }
 
 registerEnumType(ReserveStatus, {

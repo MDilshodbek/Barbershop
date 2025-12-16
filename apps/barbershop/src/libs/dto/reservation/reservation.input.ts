@@ -58,25 +58,11 @@ export class ReserveInquiry {
 @InputType()
 export class BarberScheduleInquiry {
 	@IsOptional()
-	@Field(() => String, { nullable: true })
-	text?: string;
-
-	@IsOptional()
 	@Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'ymd must be YYYY-MM-DD' })
 	@Field(() => String, { nullable: true })
 	ymd?: string;
 
 	@Field(() => Date, { nullable: true }) reserveDay?: Date;
-
-	@IsNotEmpty()
-	@Min(1)
-	@Field(() => Int)
-	page: number;
-
-	@IsNotEmpty()
-	@Min(1)
-	@Field(() => Int)
-	limit: number;
 
 	@IsOptional()
 	@IsIn(availableScheduleSorts)
@@ -89,10 +75,35 @@ export class BarberScheduleInquiry {
 }
 
 @InputType()
+export class SelectedBarberScheduleInquiry {
+	@IsOptional()
+	@Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'ymd must be YYYY-MM-DD' })
+	@Field(() => String, { nullable: true })
+	ymd?: string;
+
+	@IsOptional()
+	@Field(() => Date, { nullable: true })
+	reserveDay?: Date;
+
+	@IsOptional()
+	@IsIn(availableScheduleSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+
+	@IsNotEmpty()
+	@Field(() => String)
+	barberId: ObjectId;
+}
+
+@InputType()
 export class CancelReservationInput {
 	@Field(() => String)
 	reservationId: ObjectId;
 
 	@Field(() => String, { nullable: true })
-	reason?: string;
+	cancelReason?: string;
 }

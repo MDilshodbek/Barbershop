@@ -10,10 +10,13 @@ import {
 	CancelReservationInput,
 	ReserveInput,
 	ReserveInquiry,
+	SelectedBarberScheduleInquiry,
 } from '../../libs/dto/reservation/reservation.input';
 import { AuthMember } from '../auth/decorators/authMember.decorator';
 import { ObjectId } from 'mongoose';
 import { ReserveUpdate } from '../../libs/dto/reservation/reservation.update';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { WithoutGuard } from '../auth/guards/without.guard';
 
 @Resolver()
 export class ReservationResolver {
@@ -54,8 +57,7 @@ export class ReservationResolver {
 		return await this.reserveService.getMyReservations(memberId, input);
 	}
 
-	@Roles(MemberType.BARBER)
-	@UseGuards(RolesGuard)
+	@UseGuards(AuthGuard)
 	@Query(() => Reservations)
 	public async getBarberSchedules(
 		@Args('input', { nullable: true }) input: BarberScheduleInquiry,
@@ -65,9 +67,18 @@ export class ReservationResolver {
 		return await this.reserveService.getBarberSchedules(barberId, input);
 	}
 
+	@UseGuards(WithoutGuard)
+	@Query(() => Reservations)
+	public async getSelectedBarberSchedules(
+		@Args('input', { nullable: true }) input: SelectedBarberScheduleInquiry,
+	): Promise<Reservations> {
+		console.log('Query: getSelectedBarberSchedules');
+		return await this.reserveService.getSelectedBarberSchedules(input);
+	}
+
 	@Roles(MemberType.BARBER)
 	@UseGuards(RolesGuard)
-	@Query(() => Reservation)
+	@Mutation(() => Reservation)
 	public async updateReservation(
 		@Args('input') input: ReserveUpdate,
 		@AuthMember('_id') barberId: ObjectId,

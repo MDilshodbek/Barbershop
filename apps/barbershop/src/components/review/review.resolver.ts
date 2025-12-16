@@ -33,6 +33,7 @@ export class ReviewResolver {
 	): Promise<Review> {
 		console.log('Mutation: updateReview');
 		input._id = shapeIntoMongoObjectId(input._id);
+		input.reviewRefId = shapeIntoMongoObjectId(input.reviewRefId);
 		return await this.reviewService.updateReview(memberId, input);
 	}
 

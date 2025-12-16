@@ -67,6 +67,15 @@ export class CommentService {
 			})
 			.exec();
 
+		switch (input.commentStatus) {
+			case CommentStatus.DELETE:
+				await this.boardArticleService.boardArticleStatsEditor({
+					_id: input.commentTargetId,
+					targetKey: 'articleComments',
+					modifier: -1,
+				});
+		}
+
 		if (!result) throw new InternalServerErrorException(Message.UPDATE_FAILED);
 
 		return result;

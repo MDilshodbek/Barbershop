@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsOptional, Length } from 'class-validator';
 import { ObjectId } from 'mongoose';
-import { ReviewStatus } from '../../enums/review.enum';
+import { ReviewGroup, ReviewStatus } from '../../enums/review.enum';
 
 @InputType()
 export class ReviewUpdate {
@@ -24,4 +24,8 @@ export class ReviewUpdate {
 	@IsOptional()
 	@Field(() => Number, { nullable: true })
 	rating?: number;
+
+	@IsNotEmpty()
+	@Field(() => String)
+	reviewRefId: ObjectId;
 }

@@ -42,7 +42,7 @@ const ReserveSchema = new Schema(
 			ref: 'Services',
 		},
 
-		serviceName: {
+		serviceTitle: {
 			type: String,
 			required: true,
 		},
