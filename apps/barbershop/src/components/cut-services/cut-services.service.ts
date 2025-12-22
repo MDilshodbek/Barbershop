@@ -107,7 +107,7 @@ export class CutServicesService {
 				{ $sort: { displayOrder: 1, _id: 1 } },
 				{
 					$facet: {
-						list: [],
+						list: [{ $skip: (input.page - 1) * input.limit }, { $limit: input.limit }],
 						metaCounter: [{ $count: 'total' }],
 					},
 				},

@@ -107,3 +107,15 @@ export class CancelReservationInput {
 	@Field(() => String, { nullable: true })
 	cancelReason?: string;
 }
+
+@InputType()
+export class AllBarberScheduleInquiry {
+	@IsOptional()
+	@IsIn(availableScheduleSorts)
+	@Field(() => String, { nullable: true })
+	sort?: string;
+
+	@IsOptional()
+	@Field(() => Direction, { nullable: true })
+	direction?: Direction;
+}

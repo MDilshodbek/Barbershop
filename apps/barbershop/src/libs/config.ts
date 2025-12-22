@@ -16,7 +16,7 @@ export const shapeIntoMongoObjectId = (target: any) => {
 
 export const availableMemberSorts = ['createdAt', 'memberLevel', 'memberLikes', 'memberRank'];
 export const availableReserveSorts = ['createdAt', 'oldest'];
-export const availableScheduleSorts = ['daily', 'weekly'];
+export const availableScheduleSorts = ['createdAt', 'daily', 'weekly'];
 export const availableBoardArticleSorts = ['createdAt', 'updatedAt', 'articleLikes', 'articleViews'];
 export const availableCommentSorts = ['createdAt', 'updatedAt'];
 export const availableReviewSorts = ['createdAt', 'updatedAt', 'rating'];

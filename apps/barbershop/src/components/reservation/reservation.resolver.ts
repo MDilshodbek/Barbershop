@@ -6,6 +6,7 @@ import { UseGuards } from '@nestjs/common';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Reservation, Reservations } from '../../libs/dto/reservation/reservation';
 import {
+	AllBarberScheduleInquiry,
 	BarberScheduleInquiry,
 	CancelReservationInput,
 	ReserveInput,
@@ -85,5 +86,15 @@ export class ReservationResolver {
 	): Promise<Reservation> {
 		console.log('Query: updateReservation');
 		return await this.reserveService.updateReservation(barberId, input);
+	}
+
+	@Roles(MemberType.ADMIN)
+	@UseGuards(RolesGuard)
+	@Query(() => Reservations)
+	public async getAllBarberSchedules(
+		@Args('input', { nullable: true }) input: AllBarberScheduleInquiry,
+	): Promise<Reservations> {
+		console.log('Query: getAllBarberSchedules');
+		return await this.reserveService.getAllBarberSchedules(input);
 	}
 }

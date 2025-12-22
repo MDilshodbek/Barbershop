@@ -10,6 +10,7 @@ export enum ServiceType {
 	CHILDREN = 'CHILDREN',
 	WASH = 'WASH',
 	MASSAGE = 'MASSAGE',
+	OTHER = 'OTHER',
 }
 registerEnumType(ServiceType, {
 	name: 'ServiceType',

@@ -4,6 +4,7 @@ import { Model, ObjectId, PipelineStage } from 'mongoose';
 import { Reservation, Reservations } from '../../libs/dto/reservation/reservation';
 import {
 	BarberScheduleInquiry,
+	AllBarberScheduleInquiry,
 	CancelReservationInput,
 	ReserveInput,
 	ReserveInquiry,
@@ -381,5 +382,43 @@ export class ReservationService {
 		}
 
 		return reservation as unknown as Reservation;
+	}
+
+	public async getAllBarberSchedules(input?: AllBarberScheduleInquiry): Promise<Reservations> {
+		const query = input ?? ({} as AllBarberScheduleInquiry);
+
+		// BASE MATCH: no filters; admin sees every reservation
+		const match: T = {};
+
+		// SORT
+		const sort: T = { [query.sort ?? 'createdAt']: query.direction ?? Direction.DESC };
+
+		// PIPELINE
+		const pipeline: PipelineStage[] = [
+			{ $match: match } as PipelineStage,
+			{ $sort: sort } as PipelineStage,
+			{
+				$facet: {
+					list: [
+						lookupBarber as PipelineStage,
+						{ $unwind: { path: '$memberData', preserveNullAndEmptyArrays: true } } as PipelineStage,
+						{ $set: { barberData: '$memberData' } } as PipelineStage,
+					] as PipelineStage[],
+
+					metaCounter: [{ $count: 'total' }] as unknown as PipelineStage[],
+				},
+			} as PipelineStage,
+		];
+
+		console.log('Service:getAllBarberSchedules', { query, sort });
+
+		try {
+			const res = await this.reserveModel.aggregate(pipeline).exec();
+			const result = res?.[0] ?? { list: [], metaCounter: [] };
+			return result;
+		} catch (err) {
+			console.error('getAllBarberSchedules error:', err);
+			throw new BadRequestException(Message.BAD_REQUEST);
+		}
 	}
 }
