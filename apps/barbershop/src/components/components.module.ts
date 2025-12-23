@@ -10,7 +10,6 @@ import { ReviewModule } from './review/review.module';
 import { CutServicesModule } from './cut-services/cut-services.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { NotificationModule } from './notification/notification.module';
-import { AiAssistantModule } from './ai-asistance/ai-asistance.module';
 
 @Module({
 	imports: [
@@ -25,7 +24,6 @@ import { AiAssistantModule } from './ai-asistance/ai-asistance.module';
 		LikeModule,
 		ViewModule,
 		NotificationModule,
-		AiAssistantModule,
 	],
 })
 export class ComponentsModule {}

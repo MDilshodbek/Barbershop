@@ -91,7 +91,7 @@ export class SocketGateway implements OnGatewayInit {
 
 		const newMessage: MessagePayload = { event: 'message', text: payload, memberData: authMember };
 
-		const clientNick: String = authMember?.memberNick ?? 'Guest';
+		const clientNick: string = authMember?.memberNick ?? 'Guest';
 		this.logger.verbose(`New Message [${clientNick}]: ${payload}`);
 
 		this.messagesList.push(newMessage);
