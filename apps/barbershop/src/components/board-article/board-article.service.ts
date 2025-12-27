@@ -103,7 +103,6 @@ export class BoardArticleService {
 		if (input.search?.memberId) {
 			match.memberId = shapeIntoMongoObjectId(input.search.memberId);
 		}
-		console.log('match:', match);
 
 		const result = await this.boardArticleModel
 			.aggregate([

@@ -1,0 +1,39 @@
+version: '3.3'
+
+services:
+  barbershop:
+    container_name: barbershop
+    restart: always
+    image: node:20.10.0
+    ports:
+      - 4001:3007
+    volumes:
+      - ./:/usr/src/barbershop
+    working_dir: /usr/src/barbershop
+
+    networks:
+      - monorepo_network
+
+    command: bash -c "npm install && npm run build && npm run start:prod"
+
+    # For Development
+    # command: bash -c "npm install && npm run build && npm start:dev"
+
+  barbershop-batch:
+    container_name: barbershop-batch
+    restart: unless-stopped
+    image: node:20.10.0
+    ports:
+    - 4002:3008
+    volumes:
+    - ./:/usr/src/barbershop
+    working_dir: /usr/src/barbershop
+
+    networks:
+    - monorepo_network
+
+    command: bash -c "npm install && npm run build && npm run start:prod:batch"
+
+networks:
+  monorepo_network:
+    driver: bridge

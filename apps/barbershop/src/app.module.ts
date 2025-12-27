@@ -24,7 +24,6 @@ import { SocketModule } from './socket/socket.module';
 					message:
 						error?.extensions?.exception?.response?.message || error?.extensions?.response?.message || error?.message,
 				};
-				console.log('GRAPHQL GLOBAL ERR:', graphQLFormattedError);
 				return graphQLFormattedError;
 			},
 		}),
