@@ -51,7 +51,6 @@ export class FollowService {
 				followerId: followerId,
 			});
 		} catch (err) {
-			console.log('Error, Service.model:', err.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
@@ -78,7 +77,6 @@ export class FollowService {
 		const { page, limit, search } = input;
 		if (!search?.followerId) throw new InternalServerErrorException(Message.BAD_REQUEST);
 		const match: T = { followerId: search?.followerId };
-		console.log('match:', match);
 
 		const result = await this.followModel
 			.aggregate([
@@ -109,7 +107,6 @@ export class FollowService {
 		if (!search?.followingId) throw new InternalServerErrorException(Message.BAD_REQUEST);
 
 		const match: T = { followingId: search?.followingId };
-		console.log('match:', match);
 
 		const result = await this.followModel
 			.aggregate([

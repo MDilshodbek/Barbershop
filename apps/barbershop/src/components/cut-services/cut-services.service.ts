@@ -18,7 +18,6 @@ export class CutServicesService {
 
 			return result;
 		} catch (error) {
-			console.log('Error, Service.model:', error.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
@@ -60,7 +59,6 @@ export class CutServicesService {
 		const match: T = { serviceStatus: ServiceStatus.ACTIVE };
 
 		if (text) match.serviceTitle = { $regex: new RegExp(text, 'i') };
-		console.log('match:', match);
 
 		const result = await this.servicesModel
 			.aggregate([
@@ -76,7 +74,6 @@ export class CutServicesService {
 			.exec();
 
 		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
-		console.log('result:', result);
 
 		return result[0];
 	}
@@ -84,12 +81,10 @@ export class CutServicesService {
 	public async removeService(_id: string): Promise<boolean> {
 		try {
 			const res = await this.servicesModel.deleteOne({ _id }).exec();
-			console.log('res:', res);
 
 			if (!res?.deletedCount) throw new BadRequestException(Message.REMOVE_FAILED);
 			return true;
 		} catch (error: any) {
-			console.log('Error, Service.model:', error.message);
 			throw new BadRequestException(Message.REMOVE_FAILED);
 		}
 	}
@@ -99,7 +94,6 @@ export class CutServicesService {
 
 		if (input?.text) match.serviceTitle = { $regex: new RegExp(input?.text, 'i') };
 		if (input?.serviceStatus) match.serviceStatus = input?.serviceStatus;
-		console.log('match:', match);
 
 		const result = await this.servicesModel
 			.aggregate([
@@ -115,7 +109,6 @@ export class CutServicesService {
 			.exec();
 
 		if (!result.length) throw new InternalServerErrorException(Message.NO_DATA_FOUND);
-		console.log('result:', result);
 
 		return result[0];
 	}

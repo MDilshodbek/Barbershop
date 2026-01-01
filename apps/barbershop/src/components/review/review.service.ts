@@ -28,7 +28,6 @@ export class ReviewService {
 		try {
 			result = await this.reviewModel.create(input);
 		} catch (error) {
-			console.log('Error, ReviewModel:', error.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 

@@ -19,7 +19,6 @@ export class AuthGuard implements CanActivate {
 			const authMember = await this.authService.verifyToken(token);
 			if (!authMember) throw new UnauthorizedException(Message.NOT_AUTHENTICATED);
 
-			console.log('memberNick[auth] =>', authMember.memberNick);
 			request.body.authMember = authMember;
 
 			return true;

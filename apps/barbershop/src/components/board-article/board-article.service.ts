@@ -41,7 +41,6 @@ export class BoardArticleService {
 
 			return result;
 		} catch (error) {
-			console.log('Error, Service.model:', error.message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}

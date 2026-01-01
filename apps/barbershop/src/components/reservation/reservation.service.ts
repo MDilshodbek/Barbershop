@@ -40,7 +40,6 @@ export class ReservationService {
 
 	public async createReservation(input: ReserveInput): Promise<Reservation> {
 		const { barberId, serviceId, reserveRefId, reserveTime } = input;
-		console.log('input:', input);
 
 		// upfront guard
 		if (!barberId || !serviceId || !reserveTime || !reserveRefId) {
@@ -143,7 +142,6 @@ export class ReservationService {
 
 			return doc;
 		} catch (error) {
-			console.log('Error, createReservation:', (error as Error).message);
 			throw new BadRequestException(Message.CREATE_FAILED);
 		}
 	}
@@ -409,8 +407,6 @@ export class ReservationService {
 				},
 			} as PipelineStage,
 		];
-
-		console.log('Service:getAllBarberSchedules', { query, sort });
 
 		try {
 			const res = await this.reserveModel.aggregate(pipeline).exec();

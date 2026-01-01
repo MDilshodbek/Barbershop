@@ -18,7 +18,7 @@ export class CutServicesResolver {
 	@UseGuards(RolesGuard)
 	@Mutation(() => Service)
 	public async createService(@Args('input') input: ServiceInput): Promise<Service> {
-		console.log('Mutation: createProperty');
+		console.log('Mutation: createService');
 
 		return await this.cutService.createService(input);
 	}
@@ -59,7 +59,7 @@ export class CutServicesResolver {
 	@UseGuards(RolesGuard)
 	@Query((returns) => Services)
 	public async getAllServicesByAdmin(@Args('input', { nullable: true }) input?: ServiceInquiry): Promise<Services> {
-		console.log('Query: getServices');
+		console.log('Query: getAllServicesByAdmin');
 		return await this.cutService.getAllServicesByAdmin(input);
 	}
 }
