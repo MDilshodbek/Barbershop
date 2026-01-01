@@ -6,7 +6,6 @@ import { DatabaseModule } from './database/database.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MongooseModule } from '@nestjs/mongoose';
 import MemberSchema from 'apps/barbershop/src/schemas/Member.model';
-import BarberServiceSchema from 'apps/barbershop/src/schemas/BarberServices.model';
 
 @Module({
 	imports: [
@@ -14,7 +13,6 @@ import BarberServiceSchema from 'apps/barbershop/src/schemas/BarberServices.mode
 		DatabaseModule,
 		ScheduleModule.forRoot(),
 		MongooseModule.forFeature([{ name: 'Member', schema: MemberSchema }]),
-		MongooseModule.forFeature([{ name: 'BarberService', schema: BarberServiceSchema }]),
 	],
 	controllers: [BarbershopBatchController],
 	providers: [BarbershopBatchService],
