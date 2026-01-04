@@ -117,10 +117,12 @@ export class ReviewService {
 		const { reviewGroup } = input;
 		const match: T = { reviewStatus: ReviewStatus.ACTIVE, reviewGroup };
 
+		const sort: T = { [input?.sort ?? 'createdAt']: input?.direction ?? Direction.DESC };
+
 		const result: Reviews[] = await this.reviewModel
 			.aggregate([
 				{ $match: match },
-				{ $sort: { rating: -1, createdAt: -1 } },
+				{ $sort: sort },
 				{
 					$facet: {
 						list: [
