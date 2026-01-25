@@ -19,7 +19,7 @@ interface InfoPayload {
 	action: string;
 }
 
-@WebSocketGateway({ transports: ['websocket'], secure: false })
+@WebSocketGateway({ transports: ['websocket'], secure: process.env.NODE_ENV !== 'development' })
 export class SocketGateway implements OnGatewayInit {
 	private logger: Logger = new Logger('SocketEventsGateway');
 	private summaryClient: number = 0;

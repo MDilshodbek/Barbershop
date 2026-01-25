@@ -18,3 +18,4 @@ import MemberSchema from 'apps/barbershop/src/schemas/Member.model';
 	providers: [BarbershopBatchService],
 })
 export class BarbershopBatchModule {}
+
