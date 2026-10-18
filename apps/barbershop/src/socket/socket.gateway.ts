@@ -2,30 +2,59 @@ import { Logger } from '@nestjs/common';
 import { OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'ws';
 import * as WebSocket from 'ws';
+import { Content } from '@google/genai';
 import { AuthService } from '../components/auth/auth.service';
 import { AiService } from '../components/ai/ai.service';
 import { Member } from '../libs/dto/member/member';
 import * as url from 'url';
 
-interface MessagePayload {
-	event: string;
-	text: string;
-	memberData: Member;
+// Minimal member shape sent to the frontend; AI_BOT uses a string _id instead of ObjectId
+type ChatMember = Pick<Member, 'memberNick' | 'memberImage'> & { _id: Member['_id'] | string };
+
+interface ClientSession {
+	member: Member | null;
+	history: Content[];
+	isBusy: boolean;
+	lastMessageAt: number;
 }
 
-interface InfoPayload {
-	event: string;
-	totalClients: number;
-	memberData: Member;
-	action: string;
+interface MessagePayload {
+	event: 'message';
+	text: string;
+	memberData: ChatMember | null;
 }
+
+interface TypingPayload {
+	event: 'typing';
+	isTyping: boolean;
+}
+
+interface ErrorPayload {
+	event: 'error';
+	text: string;
+}
+
+interface GetMessagesPayload {
+	event: 'getMessages';
+	list: MessagePayload[];
+}
+
+type OutgoingPayload = MessagePayload | TypingPayload | ErrorPayload | GetMessagesPayload;
+
+const AI_BOT: ChatMember = {
+	_id: 'ai-assistant',
+	memberNick: 'Barber AI',
+	memberImage: '/img/ai-bot.png',
+};
+const MAX_HISTORY = 20; // must stay even (user + model pairs)
+const MAX_INPUT_LENGTH = 500;
+const COOLDOWN_MS = 2000;
+const AI_ERROR_REPLY = "Sorry, I'm having trouble answering right now. Please try again in a moment.";
 
 @WebSocketGateway({ transports: ['websocket'], secure: process.env.NODE_ENV !== 'development' })
 export class SocketGateway implements OnGatewayInit {
 	private logger: Logger = new Logger('SocketEventsGateway');
-	private summaryClient: number = 0;
-	private clientsAuthMap = new Map<WebSocket, Member>();
-	private messagesList: MessagePayload[] = [];
+	private sessions = new Map<WebSocket, ClientSession>();
 
 	constructor(
 		private authService: AuthService,
@@ -36,7 +65,7 @@ export class SocketGateway implements OnGatewayInit {
 	server: Server;
 
 	public afterInit(server: Server) {
-		this.logger.verbose(`Websocket server Initialized & total: [${this.summaryClient}]`);
+		this.logger.verbose('Websocket server Initialized');
 	}
 
 	private async retrieveAuth(req: any): Promise<Member> {
@@ -51,76 +80,77 @@ export class SocketGateway implements OnGatewayInit {
 
 	public async handleConnection(client: WebSocket, req: any) {
 		const authMember = await this.retrieveAuth(req);
-		this.summaryClient++;
-		this.clientsAuthMap.set(client, authMember);
+		this.sessions.set(client, { member: authMember ?? null, history: [], isBusy: false, lastMessageAt: 0 });
 
-		// client => authMember
-		const clientNick: String = authMember?.memberNick ?? 'Guest';
-		this.logger.verbose(`Connection [${clientNick}] & total: [${this.summaryClient}]`);
+		const clientNick: string = authMember?.memberNick ?? 'Guest';
+		this.logger.verbose(`Connection [${clientNick}]`);
 
-		const infoMsg: InfoPayload = {
-			event: 'info',
-			totalClients: this.summaryClient,
-			memberData: authMember,
-			action: 'joined',
+		const greeting: MessagePayload = {
+			event: 'message',
+			text: `Hi ${clientNick}! I'm Barber Assistant. How can I help you today?`,
+			memberData: AI_BOT,
 		};
-
-		this.emitMessage(infoMsg);
-		// client messages
-		client.send(JSON.stringify({ event: 'getMessages', list: this.messagesList }));
+		this.sendTo(client, { event: 'getMessages', list: [greeting] });
 	}
 
 	public handleDisconnect(client: WebSocket) {
-		const authMember = this.clientsAuthMap.get(client);
-		this.summaryClient--;
-		this.clientsAuthMap.delete(client);
-
-		const clientNick: String = authMember?.memberNick ?? 'Guest';
-		this.logger.verbose(`Disconnection [${clientNick}] & total: [${this.summaryClient}]`);
-
-		const infoMsg: InfoPayload = {
-			event: 'info',
-			totalClients: this.summaryClient,
-			memberData: authMember,
-			action: 'left',
-		};
-
-		// client - disconnect
-		this.broadcastMessage(client, infoMsg);
+		const session = this.sessions.get(client);
+		this.logger.verbose(`Disconnection [${session?.member?.memberNick ?? 'Guest'}]`);
+		this.sessions.delete(client);
 	}
 
 	@SubscribeMessage('message')
-	public async handleMessage(client: WebSocket, payload: string): Promise<void> {
-		const authMember = this.clientsAuthMap.get(client);
+	public async handleMessage(client: WebSocket, payload: unknown): Promise<void> {
+		const session = this.sessions.get(client);
+		if (!session) return;
 
-		const newMessage: MessagePayload = { event: 'message', text: payload, memberData: authMember };
+		// 1. Validate
+		const text = typeof payload === 'string' ? payload.trim() : '';
+		if (!text) return this.sendError(client, 'Message is empty');
+		if (text.length > MAX_INPUT_LENGTH) {
+			return this.sendError(client, `Message is too long (max ${MAX_INPUT_LENGTH} characters)`);
+		}
+		if (session.isBusy) return this.sendError(client, 'Please wait for the current answer');
+		if (Date.now() - session.lastMessageAt < COOLDOWN_MS) {
+			return this.sendError(client, 'You are sending messages too fast');
+		}
 
-		const clientNick: string = authMember?.memberNick ?? 'Guest';
-		this.logger.verbose(`New Message [${clientNick}]: ${payload}`);
+		// 2. Lock session
+		session.lastMessageAt = Date.now();
+		session.isBusy = true;
 
-		this.messagesList.push(newMessage);
-		if (this.messagesList.length > 5) this.messagesList.splice(0, this.messagesList.length - 5);
-		this.emitMessage(newMessage);
+		const clientNick: string = session.member?.memberNick ?? 'Guest';
+		this.logger.verbose(`New Message [${clientNick}]: ${text}`);
+
+		// 3. Echo + 4. typing indicator
+		this.sendTo(client, { event: 'message', text, memberData: session.member });
+		this.sendTo(client, { event: 'typing', isTyping: true });
+
+		// 5. Ask AI
+		try {
+			const reply = await this.aiService.generateReply(session.history, text);
+
+			session.history.push({ role: 'user', parts: [{ text }] }, { role: 'model', parts: [{ text: reply }] });
+			session.history = session.history.slice(-MAX_HISTORY);
+
+			this.sendTo(client, { event: 'message', text: reply, memberData: AI_BOT });
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			this.logger.error(`AI reply failed [${clientNick}]: ${message}`, err instanceof Error ? err.stack : undefined);
+			this.sendTo(client, { event: 'message', text: AI_ERROR_REPLY, memberData: AI_BOT });
+		} finally {
+			session.isBusy = false;
+			this.sendTo(client, { event: 'typing', isTyping: false });
+		}
 	}
 
-	private broadcastMessage(sender: WebSocket, message: InfoPayload | MessagePayload) {
-		this.server.clients.forEach((client) => {
-			if (client !== sender && client.readyState === WebSocket.OPEN) {
-				client.send(JSON.stringify(message));
-			}
-		});
+	private sendTo(client: WebSocket, payload: OutgoingPayload) {
+		if (client.readyState === WebSocket.OPEN) {
+			client.send(JSON.stringify(payload));
+		}
 	}
 
-	private emitMessage(message: InfoPayload | MessagePayload) {
-		this.server.clients.forEach((client) => {
-			if (client.readyState === WebSocket.OPEN) {
-				client.send(JSON.stringify(message));
-			}
-		});
+	private sendError(client: WebSocket, text: string) {
+		this.sendTo(client, { event: 'error', text });
 	}
 }
-
-// Message Target
-// 1. Client (only client)
-// 2. Broadcast (Except client)
-// 3. Emit (all clients)
