@@ -3,6 +3,7 @@ import { OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } fr
 import { Server } from 'ws';
 import * as WebSocket from 'ws';
 import { AuthService } from '../components/auth/auth.service';
+import { AiService } from '../components/ai/ai.service';
 import { Member } from '../libs/dto/member/member';
 import * as url from 'url';
 
@@ -26,7 +27,10 @@ export class SocketGateway implements OnGatewayInit {
 	private clientsAuthMap = new Map<WebSocket, Member>();
 	private messagesList: MessagePayload[] = [];
 
-	constructor(private authService: AuthService) {}
+	constructor(
+		private authService: AuthService,
+		private aiService: AiService,
+	) {}
 
 	@WebSocketServer()
 	server: Server;
