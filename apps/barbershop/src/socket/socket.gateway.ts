@@ -2,11 +2,12 @@ import { Logger } from '@nestjs/common';
 import { OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'ws';
 import * as WebSocket from 'ws';
-import { Content } from '@google/genai';
+import { ApiError, Content } from '@google/genai';
 import { AuthService } from '../components/auth/auth.service';
 import { AiService } from '../components/ai/ai.service';
 import { Member } from '../libs/dto/member/member';
 import * as url from 'url';
+import { randomUUID } from 'crypto';
 
 // Minimal member shape sent to the frontend; AI_BOT uses a string _id instead of ObjectId
 type ChatMember = Pick<Member, 'memberNick' | 'memberImage'> & { _id: Member['_id'] | string };
@@ -39,7 +40,26 @@ interface GetMessagesPayload {
 	list: MessagePayload[];
 }
 
-type OutgoingPayload = MessagePayload | TypingPayload | ErrorPayload | GetMessagesPayload;
+interface AiChunkPayload {
+	event: 'aiChunk';
+	id: string;
+	text: string;
+}
+
+interface AiDonePayload {
+	event: 'aiDone';
+	id: string;
+	text: string;
+	memberData: ChatMember;
+}
+
+type OutgoingPayload =
+	| MessagePayload
+	| TypingPayload
+	| ErrorPayload
+	| GetMessagesPayload
+	| AiChunkPayload
+	| AiDonePayload;
 
 const AI_BOT: ChatMember = {
 	_id: 'ai-assistant',
@@ -120,23 +140,35 @@ export class SocketGateway implements OnGatewayInit {
 		session.isBusy = true;
 
 		const clientNick: string = session.member?.memberNick ?? 'Guest';
-		this.logger.verbose(`New Message [${clientNick}]: ${text}`);
+		this.logger.verbose(`New Message [${clientNick}] (${text.length} chars)`);
 
 		// 3. Echo + 4. typing indicator
 		this.sendTo(client, { event: 'message', text, memberData: session.member });
 		this.sendTo(client, { event: 'typing', isTyping: true });
 
-		// 5. Ask AI
+		// 5. Stream AI reply
 		try {
-			const reply = await this.aiService.generateReply(session.history, text);
+			const id = randomUUID();
+			let fullReply = '';
+
+			for await (const chunk of this.aiService.streamReply(session.history, text)) {
+				// Client left mid-stream: leaving the loop also closes the Gemini stream; history is not saved
+				if (!this.isConnected(client)) return;
+				fullReply += chunk;
+				this.sendTo(client, { event: 'aiChunk', id, text: chunk });
+			}
+
+			const reply = fullReply.trim();
+			if (!reply) throw new Error('AI returned an empty reply');
 
 			session.history.push({ role: 'user', parts: [{ text }] }, { role: 'model', parts: [{ text: reply }] });
 			session.history = session.history.slice(-MAX_HISTORY);
 
-			this.sendTo(client, { event: 'message', text: reply, memberData: AI_BOT });
+			this.sendTo(client, { event: 'aiDone', id, text: reply, memberData: AI_BOT });
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
-			this.logger.error(`AI reply failed [${clientNick}]: ${message}`, err instanceof Error ? err.stack : undefined);
+			const status = err instanceof ApiError ? ` status=${err.status}` : ''; // e.g. 429 = rate limited
+			this.logger.error(`AI reply failed [${clientNick}]${status}: ${message}`, err instanceof Error ? err.stack : undefined);
 			this.sendTo(client, { event: 'message', text: AI_ERROR_REPLY, memberData: AI_BOT });
 		} finally {
 			session.isBusy = false;
@@ -148,6 +180,10 @@ export class SocketGateway implements OnGatewayInit {
 		if (client.readyState === WebSocket.OPEN) {
 			client.send(JSON.stringify(payload));
 		}
+	}
+
+	private isConnected(client: WebSocket): boolean {
+		return client.readyState === WebSocket.OPEN && this.sessions.has(client);
 	}
 
 	private sendError(client: WebSocket, text: string) {
