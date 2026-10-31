@@ -1,0 +1,28 @@
+# Dependencies and build output (rebuilt inside the image)
+node_modules
+dist
+
+# Secrets: never bake into the image
+.env
+.env.*
+
+# Runtime data (mounted as a volume on the VPS)
+uploads
+
+# Git, CI, and deployment files
+.git
+.gitignore
+.github
+docker-compose.yml
+deploy.sh
+deploy.ps1
+Dockerfile
+.dockerignore
+
+# Dev-only tools, docs, editor files, logs
+scripts
+coverage
+README.md
+.vscode
+.idea
+*.log

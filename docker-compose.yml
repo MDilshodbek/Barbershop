@@ -1,36 +1,55 @@
 services:
   barbershop:
     container_name: barbershop
+    image: ghcr.io/mdilshodbek/barbershop:${IMAGE_TAG:-latest}
     restart: always
-    image: node:20.10.0
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT_API: 3007
+    # Localhost only: Nginx on the VPS proxies to 4001; not reachable from the internet directly
     ports:
-      - 4001:3007
+      - 127.0.0.1:4001:3007
     volumes:
-      - ./:/usr/src/barbershop
-    working_dir: /usr/src/barbershop
-
+      - ./uploads:/usr/src/barbershop/uploads
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3007/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     networks:
       - monorepo_network
 
-    command: bash -c "npm install && npm run build && npm run start:prod"
-
-    # For Development
-    # command: bash -c "npm install && npm run build && npm start:dev"
-
   barbershop-batch:
     container_name: barbershop-batch
+    image: ghcr.io/mdilshodbek/barbershop:${IMAGE_TAG:-latest}
+    command: ['node', 'dist/apps/barbershop-batch/main']
     restart: unless-stopped
-    image: node:20.10.0
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT_BATCH: 3008
     ports:
-    - 4002:3008
-    volumes:
-    - ./:/usr/src/barbershop
-    working_dir: /usr/src/barbershop
-
+      - 127.0.0.1:4002:3008
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3008/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     networks:
-    - monorepo_network
-
-    command: bash -c "npm install && npm run build && npm run start:prod:batch"
+      - monorepo_network
 
 networks:
   monorepo_network:
