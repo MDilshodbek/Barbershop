@@ -26,6 +26,9 @@ export class LoggingInterceptor implements NestInterceptor {
 				}),
 			);
 		}
+
+		// HTTP (e.g. GET / healthcheck) and other request types pass through unchanged
+		return next.handle();
 	}
 
 	private stringify(context: ExecutionContext): string {
