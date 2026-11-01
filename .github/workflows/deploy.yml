@@ -3,6 +3,13 @@ name: CI/CD
 on:
   push:
     branches: [master]
+    # Changes that don't affect the running app don't trigger a deploy
+    paths-ignore:
+      - '**.md'
+      - 'scripts/**'
+      - 'nginx/**'
+      - 'deploy.ps1'
+      - '.env.example'
   workflow_dispatch:
 
 # Never run two deploys at the same time; a newer push waits for the current one
@@ -20,7 +27,8 @@ env:
 
 jobs:
   ci:
-    name: Lint, test, build
+    # The compile step happens once, inside the Docker build (next job)
+    name: Lint and test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,9 +47,6 @@ jobs:
 
       - name: Test
         run: npm test -- --passWithNoTests
-
-      - name: Build
-        run: npm run build
 
   docker:
     name: Build and push image
@@ -83,49 +88,41 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # Runs ON the AWS server via a self-hosted runner: the server connects out to GitHub,
+  # so GitHub never needs the server's (changing) public IP.
   deploy:
-    name: Deploy to VPS
+    name: Deploy to AWS server
     needs: docker
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, barbershop]
     environment: production
     permissions:
       contents: read
       packages: read
+    env:
+      APP_DIR: ${{ vars.APP_DIR }}
+      IMAGE_TAG: ${{ needs.docker.outputs.tag }}
     steps:
+      # Only the two deployment files are needed, not the whole source code
       - uses: actions/checkout@v4
-
-      - name: Upload compose file and deploy script
-        uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          source: docker-compose.yml,deploy.sh
-          target: ${{ secrets.VPS_APP_DIR }}
+          sparse-checkout: |
+            docker-compose.yml
+            deploy.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Copy deployment files to the app folder
+        run: |
+          test -n "$APP_DIR" || { echo "Repository variable APP_DIR is not set" >&2; exit 1; }
+          cp docker-compose.yml deploy.sh "$APP_DIR/"
+          chmod +x "$APP_DIR/deploy.sh"
+
+      - name: Log in to GHCR
+        # Short-lived job token: valid only while this job runs, read-only for packages
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Pull image and restart containers
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          APP_DIR: ${{ secrets.VPS_APP_DIR }}
-          IMAGE_TAG: ${{ needs.docker.outputs.tag }}
-          GHCR_USER: ${{ github.actor }}
-          # Short-lived job token: valid only while this job runs, read-only for packages
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: APP_DIR,IMAGE_TAG,GHCR_USER,GHCR_TOKEN
-          script: |
-            set -e
-            cd "$APP_DIR"
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            chmod +x deploy.sh
-            status=0
-            ./deploy.sh "$IMAGE_TAG" || status=$?
-            docker logout ghcr.io
-            exit $status
+        run: $APP_DIR/deploy.sh "$IMAGE_TAG"
+
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io

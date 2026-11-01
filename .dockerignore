@@ -19,8 +19,9 @@ deploy.ps1
 Dockerfile
 .dockerignore
 
-# Dev-only tools, docs, editor files, logs
+# Dev-only tools, server configs, docs, editor files, logs
 scripts
+nginx
 coverage
 README.md
 .vscode
